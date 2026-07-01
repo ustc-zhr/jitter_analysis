@@ -68,6 +68,8 @@ if __package__ in {None, ""}:
     )
     from jitter_analysis.gui.selection_logic import normalize_selection_for_available_pvs
     from jitter_analysis.gui.run_logic import (
+        current_record_count,
+        has_run_data,
         loaded_run_object_count_hint,
         loaded_run_parameter_updates,
         resolve_loaded_run_selection,
@@ -152,6 +154,8 @@ else:
     )
     from .selection_logic import normalize_selection_for_available_pvs
     from .run_logic import (
+        current_record_count,
+        has_run_data,
         loaded_run_object_count_hint,
         loaded_run_parameter_updates,
         resolve_loaded_run_selection,
@@ -1888,12 +1892,10 @@ class MainWindow(_MainWindowBase):
         self._viewing_saved_run = False
 
     def _current_record_count(self) -> int:
-        return len(self.current_run_records) if self.current_run_records else int(self.current_run_record_count)
+        return current_record_count(self.current_run_records, self.current_run_record_count)
 
     def _has_current_run_data(self) -> bool:
-        if self._current_record_count() > 0:
-            return True
-        return any(len(values) > 0 for values in self.current_series_values.values())
+        return has_run_data(self._current_record_count(), self.current_series_values)
 
     def _has_current_waveform_data(self) -> bool:
         return has_waveform_data(self.current_waveform_records, self.current_waveform_index)

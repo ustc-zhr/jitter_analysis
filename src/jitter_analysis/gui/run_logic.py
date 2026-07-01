@@ -14,6 +14,16 @@ def run_browser_scope_kind(root_dir: str | Path) -> str:
     return "root"
 
 
+def current_record_count(records, stored_count: int) -> int:
+    return len(records) if records else int(stored_count)
+
+
+def has_run_data(record_count: int, series_values) -> bool:
+    if int(record_count) > 0:
+        return True
+    return any(len(values) > 0 for values in series_values.values())
+
+
 def validate_loaded_run_config(result: RunResult, loaded_config) -> tuple[bool, str]:
     if loaded_config is None:
         return False, "No PV library is loaded."

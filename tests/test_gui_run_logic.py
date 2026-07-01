@@ -11,6 +11,8 @@ if str(SRC) not in sys.path:
 
 from jitter_analysis.domain.types import RunMetadata, RunMode, RunResult, RunStatus
 from jitter_analysis.gui.run_logic import (
+    current_record_count,
+    has_run_data,
     loaded_run_object_count_hint,
     loaded_run_parameter_updates,
     resolve_loaded_run_selection,
@@ -45,6 +47,17 @@ def test_run_browser_scope_kind_detects_root_and_single_run_dirs(tmp_path):
     (tmp_path / "metadata.json").write_text("{}", encoding="utf-8")
 
     assert run_browser_scope_kind(tmp_path) == "single_run"
+
+
+def test_current_record_count_prefers_materialized_records_then_stored_count():
+    assert current_record_count([object(), object()], 10) == 2
+    assert current_record_count([], 10) == 10
+
+
+def test_has_run_data_uses_record_count_or_series_values():
+    assert has_run_data(1, {}) is True
+    assert has_run_data(0, {"pv1": [], "pv2": [1.0]}) is True
+    assert has_run_data(0, {"pv1": []}) is False
 
 
 def test_validate_loaded_run_config_rejects_missing_config():
