@@ -12,6 +12,7 @@ if str(SRC) not in sys.path:
 
 from jitter_analysis.domain.types import RunMode, RunStatus, ScanStepRecord
 from jitter_analysis.gui.view_logic import (
+    analysis_mode_key,
     connection_summary,
     estimate_series_sample_interval,
     estimate_series_sample_interval_from_sample_indices,
@@ -31,6 +32,9 @@ from jitter_analysis.gui.view_logic import (
 def test_mode_and_tone_helpers():
     assert mode_key_from_run_mode(RunMode.KNOB_SCAN) == "single_knob_scan"
     assert mode_key_from_run_mode(None) == "timed_acquisition"
+    assert analysis_mode_key("timed_acquisition", True, RunMode.MULTI_KNOB_RANDOM) == "multi_knob_random"
+    assert analysis_mode_key("single_knob_scan", False, RunMode.TIMED_ACQUISITION) == "single_knob_scan"
+    assert analysis_mode_key("single_knob_scan", True, None) == "single_knob_scan"
     assert mode_display_name("timed_acquisition") == "Monitor"
     assert mode_display_name("single_knob_scan") == "Single Knob"
     assert mode_display_name("unknown_mode") == "Unknown Mode"

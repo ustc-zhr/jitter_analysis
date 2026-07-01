@@ -40,6 +40,7 @@ if __package__ in {None, ""}:
     from jitter_analysis.gui.dialogs.setup_browser_dialog import SetupBrowserDialog
     from jitter_analysis.gui.config_snapshot import config_snapshot_text
     from jitter_analysis.gui.view_logic import (
+        analysis_mode_key,
         connection_summary,
         estimate_series_sample_interval,
         estimate_series_sample_interval_from_sample_indices,
@@ -129,6 +130,7 @@ else:
     from .dialogs.setup_browser_dialog import SetupBrowserDialog
     from .config_snapshot import config_snapshot_text
     from .view_logic import (
+        analysis_mode_key,
         connection_summary,
         estimate_series_sample_interval,
         estimate_series_sample_interval_from_sample_indices,
@@ -2225,14 +2227,7 @@ class MainWindow(_MainWindowBase):
         )
 
     def _analysis_mode_key(self, fallback_mode: str) -> str:
-        if self._has_analysis_data and self.current_run_mode is not None:
-            mapping = {
-                RunMode.TIMED_ACQUISITION: "timed_acquisition",
-                RunMode.KNOB_SCAN: "single_knob_scan",
-                RunMode.MULTI_KNOB_RANDOM: "multi_knob_random",
-            }
-            return mapping.get(self.current_run_mode, fallback_mode)
-        return fallback_mode
+        return analysis_mode_key(fallback_mode, self._has_analysis_data, self.current_run_mode)
 
     def _single_knob_axis_name(self, knob_name: str = "") -> str:
         return single_knob_axis_name(self._single_knob_axis_source, knob_name)

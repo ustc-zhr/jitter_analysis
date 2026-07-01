@@ -15,6 +15,12 @@ def mode_key_from_run_mode(mode: RunMode | None) -> str:
     return mapping.get(mode, "timed_acquisition")
 
 
+def analysis_mode_key(fallback_mode: str, has_analysis_data: bool, current_run_mode: RunMode | None) -> str:
+    if has_analysis_data and current_run_mode is not None:
+        return mode_key_from_run_mode(current_run_mode)
+    return fallback_mode
+
+
 def mode_display_name(mode: str | None) -> str:
     labels = {
         "timed_acquisition": "Monitor",
