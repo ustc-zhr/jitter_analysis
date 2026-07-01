@@ -43,6 +43,7 @@ if __package__ in {None, ""}:
         connection_summary,
         estimate_series_sample_interval,
         estimate_series_sample_interval_from_sample_indices,
+        jitter_filter_status_text,
         mode_display_name,
         mode_help_text,
         mode_ready_state,
@@ -131,6 +132,7 @@ else:
         connection_summary,
         estimate_series_sample_interval,
         estimate_series_sample_interval_from_sample_indices,
+        jitter_filter_status_text,
         mode_display_name,
         mode_help_text,
         mode_ready_state,
@@ -772,28 +774,13 @@ class MainWindow(_MainWindowBase):
     ) -> None:
         if getattr(self, "jitter_filter_status_label", None) is None:
             return
-        if not self._analysis_outlier_filter_available():
-            self.jitter_filter_status_label.setText(
-                "Outlier filtering is available in Monitor mode only and applies to Jitter, Correlation, and Spectrum."
-            )
-            return
-        if not self._jitter_outlier_filter_enabled():
-            self.jitter_filter_status_label.setText(
-                "Outlier filter is off. Monitor Jitter, Correlation, and Spectrum use raw valid samples."
-            )
-            return
-
-        threshold = self._jitter_outlier_filter_threshold()
-        message = (
-            f"Outlier filter is on. Method: robust z-score using median and MAD. "
-            f"Threshold: {threshold:.1f} sigma."
+        message = jitter_filter_status_text(
+            available=self._analysis_outlier_filter_available(),
+            enabled=self._jitter_outlier_filter_enabled(),
+            threshold=self._jitter_outlier_filter_threshold(),
+            total_removed=total_removed,
+            affected_variables=affected_variables,
         )
-        if total_removed is None:
-            message += " It will apply to Jitter, Correlation, and Spectrum when analysis data is available."
-        else:
-            message += f" Removed {total_removed} point(s)"
-            if affected_variables is not None:
-                message += f" across {affected_variables} variable(s)."
         self.jitter_filter_status_label.setText(message)
 
     def _on_jitter_filter_toggled(self, enabled: bool) -> None:

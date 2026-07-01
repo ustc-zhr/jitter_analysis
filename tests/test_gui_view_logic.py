@@ -15,6 +15,7 @@ from jitter_analysis.gui.view_logic import (
     connection_summary,
     estimate_series_sample_interval,
     estimate_series_sample_interval_from_sample_indices,
+    jitter_filter_status_text,
     mode_display_name,
     mode_help_text,
     mode_ready_state,
@@ -48,6 +49,37 @@ def test_connection_summary_labels_and_tones():
     assert connection_summary(3, 3) == ("Connected (3/3 connected)", "success")
     assert connection_summary(0, 3) == ("0/3 connected", "danger")
     assert connection_summary(2, 3) == ("2/3 connected", "warning")
+
+
+def test_jitter_filter_status_text_variants():
+    assert jitter_filter_status_text(
+        available=False,
+        enabled=True,
+        threshold=4.0,
+    ) == "Outlier filtering is available in Monitor mode only and applies to Jitter, Correlation, and Spectrum."
+    assert jitter_filter_status_text(
+        available=True,
+        enabled=False,
+        threshold=4.0,
+    ) == "Outlier filter is off. Monitor Jitter, Correlation, and Spectrum use raw valid samples."
+    assert jitter_filter_status_text(
+        available=True,
+        enabled=True,
+        threshold=4.25,
+    ) == (
+        "Outlier filter is on. Method: robust z-score using median and MAD. "
+        "Threshold: 4.2 sigma. It will apply to Jitter, Correlation, and Spectrum when analysis data is available."
+    )
+    assert jitter_filter_status_text(
+        available=True,
+        enabled=True,
+        threshold=4.0,
+        total_removed=3,
+        affected_variables=2,
+    ) == (
+        "Outlier filter is on. Method: robust z-score using median and MAD. "
+        "Threshold: 4.0 sigma. Removed 3 point(s) across 2 variable(s)."
+    )
 
 
 def test_mode_ready_state_handles_global_blockers():

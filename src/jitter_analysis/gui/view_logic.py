@@ -68,6 +68,32 @@ def connection_summary(connected: int, total: int) -> tuple[str, str]:
     return label, "warning"
 
 
+def jitter_filter_status_text(
+    *,
+    available: bool,
+    enabled: bool,
+    threshold: float,
+    total_removed: int | None = None,
+    affected_variables: int | None = None,
+) -> str:
+    if not available:
+        return "Outlier filtering is available in Monitor mode only and applies to Jitter, Correlation, and Spectrum."
+    if not enabled:
+        return "Outlier filter is off. Monitor Jitter, Correlation, and Spectrum use raw valid samples."
+
+    message = (
+        f"Outlier filter is on. Method: robust z-score using median and MAD. "
+        f"Threshold: {threshold:.1f} sigma."
+    )
+    if total_removed is None:
+        message += " It will apply to Jitter, Correlation, and Spectrum when analysis data is available."
+    else:
+        message += f" Removed {total_removed} point(s)"
+        if affected_variables is not None:
+            message += f" across {affected_variables} variable(s)."
+    return message
+
+
 def mode_ready_state(
     mode: str,
     *,
