@@ -64,6 +64,7 @@ if __package__ in {None, ""}:
     )
     from jitter_analysis.gui.run_logic import (
         loaded_run_object_count_hint,
+        loaded_run_parameter_updates,
         resolve_loaded_run_selection,
         run_browser_scope_kind,
         validate_loaded_run_config,
@@ -142,6 +143,7 @@ else:
     )
     from .run_logic import (
         loaded_run_object_count_hint,
+        loaded_run_parameter_updates,
         resolve_loaded_run_selection,
         run_browser_scope_kind,
         validate_loaded_run_config,
@@ -1411,63 +1413,46 @@ class MainWindow(_MainWindowBase):
         self._set_ui_task_mode(self._mode_key_from_run_mode(self.current_run_mode))
 
     def _apply_loaded_run_parameters(self) -> None:
-        details = self.current_run_details
+        updates = loaded_run_parameter_updates(self.current_run_details, self.current_run_mode)
         if self.current_run_mode == RunMode.TIMED_ACQUISITION:
-            if "shot_interval_sec" in details:
-                self.scan_panel.interval_spin.setValue(float(details["shot_interval_sec"]))
-            if "sample_count" in details:
-                self.scan_panel.count_spin.setValue(int(details["sample_count"]))
+            if "shot_interval_sec" in updates:
+                self.scan_panel.interval_spin.setValue(updates["shot_interval_sec"])
+            if "sample_count" in updates:
+                self.scan_panel.count_spin.setValue(updates["sample_count"])
             return
 
         if self.current_run_mode == RunMode.KNOB_SCAN:
-            if "settle_delay_sec" in details:
-                self.scan_panel.settle_spin.setValue(float(details["settle_delay_sec"]))
-            if "shot_interval_sec" in details:
-                self.scan_panel.scan_sample_interval_spin.setValue(float(details["shot_interval_sec"]))
-            if "sample_count_per_step" in details:
-                self.scan_panel.step_sample_spin.setValue(int(details["sample_count_per_step"]))
-            if "restore_initial_value" in details:
-                self.scan_panel.restore_check.setChecked(bool(details["restore_initial_value"]))
-            scan_values = details.get("scan_values", [])
-            if isinstance(scan_values, list) and scan_values:
+            if "settle_delay_sec" in updates:
+                self.scan_panel.settle_spin.setValue(updates["settle_delay_sec"])
+            if "shot_interval_sec" in updates:
+                self.scan_panel.scan_sample_interval_spin.setValue(updates["shot_interval_sec"])
+            if "sample_count_per_step" in updates:
+                self.scan_panel.step_sample_spin.setValue(updates["sample_count_per_step"])
+            if "restore_initial_value" in updates:
+                self.scan_panel.restore_check.setChecked(updates["restore_initial_value"])
+            if "manual_scan_values_text" in updates:
                 self.scan_panel.scan_value_mode_combo.setCurrentIndex(0)
-                self.scan_panel.manual_scan_values_edit.setText(
-                    ", ".join(f"{float(value):.6g}" for value in scan_values)
-                )
+                self.scan_panel.manual_scan_values_edit.setText(updates["manual_scan_values_text"])
             return
 
-        if "settle_delay_sec" in details:
-            self.scan_panel.random_settle_spin.setValue(float(details["settle_delay_sec"]))
-        if "shot_interval_sec" in details:
-            self.scan_panel.random_sample_interval_spin.setValue(float(details["shot_interval_sec"]))
-        if "sample_count_per_point" in details:
-            self.scan_panel.random_samples_per_point_spin.setValue(int(details["sample_count_per_point"]))
-        if "num_points" in details:
-            self.scan_panel.random_point_count_spin.setValue(int(details["num_points"]))
-        if "seed" in details:
-            self.scan_panel.random_seed_edit.setText(str(details["seed"]))
-        if "restore_initial_values" in details:
-            self.scan_panel.random_restore_check.setChecked(bool(details["restore_initial_values"]))
-        distribution = str(details.get("distribution", "")).strip()
-        if distribution:
-            index = self.scan_panel.random_distribution_combo.findData(distribution)
+        if "settle_delay_sec" in updates:
+            self.scan_panel.random_settle_spin.setValue(updates["settle_delay_sec"])
+        if "shot_interval_sec" in updates:
+            self.scan_panel.random_sample_interval_spin.setValue(updates["shot_interval_sec"])
+        if "sample_count_per_point" in updates:
+            self.scan_panel.random_samples_per_point_spin.setValue(updates["sample_count_per_point"])
+        if "num_points" in updates:
+            self.scan_panel.random_point_count_spin.setValue(updates["num_points"])
+        if "seed" in updates:
+            self.scan_panel.random_seed_edit.setText(updates["seed"])
+        if "restore_initial_values" in updates:
+            self.scan_panel.random_restore_check.setChecked(updates["restore_initial_values"])
+        if "distribution" in updates:
+            index = self.scan_panel.random_distribution_combo.findData(updates["distribution"])
             if index >= 0:
                 self.scan_panel.random_distribution_combo.setCurrentIndex(index)
-        knob_ranges = self.current_run_details.get("knob_ranges", [])
-        if isinstance(knob_ranges, list) and knob_ranges:
-            state = {}
-            for item in knob_ranges:
-                if not isinstance(item, dict):
-                    continue
-                knob_id = str(item.get("knob_id", "")).strip()
-                if not knob_id:
-                    continue
-                state[knob_id] = {
-                    "enabled": True,
-                    "low": float(item.get("low", 0.0)),
-                    "high": float(item.get("high", 0.0)),
-                }
-            self.scan_panel.set_random_knob_state(state)
+        if "knob_state" in updates:
+            self.scan_panel.set_random_knob_state(updates["knob_state"])
 
     @staticmethod
     def _mode_key_from_run_mode(mode: RunMode | None) -> str:

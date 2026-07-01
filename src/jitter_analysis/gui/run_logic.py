@@ -120,3 +120,63 @@ def loaded_run_object_count_hint(
         if pv_id not in seen_ids:
             seen_ids.append(pv_id)
     return len(seen_ids)
+
+
+def loaded_run_parameter_updates(details: dict[str, object], mode: RunMode | None) -> dict[str, object]:
+    if mode == RunMode.TIMED_ACQUISITION:
+        updates: dict[str, object] = {}
+        if "shot_interval_sec" in details:
+            updates["shot_interval_sec"] = float(details["shot_interval_sec"])
+        if "sample_count" in details:
+            updates["sample_count"] = int(details["sample_count"])
+        return updates
+
+    if mode == RunMode.KNOB_SCAN:
+        updates = {}
+        if "settle_delay_sec" in details:
+            updates["settle_delay_sec"] = float(details["settle_delay_sec"])
+        if "shot_interval_sec" in details:
+            updates["shot_interval_sec"] = float(details["shot_interval_sec"])
+        if "sample_count_per_step" in details:
+            updates["sample_count_per_step"] = int(details["sample_count_per_step"])
+        if "restore_initial_value" in details:
+            updates["restore_initial_value"] = bool(details["restore_initial_value"])
+        scan_values = details.get("scan_values", [])
+        if isinstance(scan_values, list) and scan_values:
+            updates["manual_scan_values_text"] = ", ".join(f"{float(value):.6g}" for value in scan_values)
+        return updates
+
+    updates = {}
+    if "settle_delay_sec" in details:
+        updates["settle_delay_sec"] = float(details["settle_delay_sec"])
+    if "shot_interval_sec" in details:
+        updates["shot_interval_sec"] = float(details["shot_interval_sec"])
+    if "sample_count_per_point" in details:
+        updates["sample_count_per_point"] = int(details["sample_count_per_point"])
+    if "num_points" in details:
+        updates["num_points"] = int(details["num_points"])
+    if "seed" in details:
+        updates["seed"] = str(details["seed"])
+    if "restore_initial_values" in details:
+        updates["restore_initial_values"] = bool(details["restore_initial_values"])
+    distribution = str(details.get("distribution", "")).strip()
+    if distribution:
+        updates["distribution"] = distribution
+
+    knob_ranges = details.get("knob_ranges", [])
+    if isinstance(knob_ranges, list) and knob_ranges:
+        state = {}
+        for item in knob_ranges:
+            if not isinstance(item, dict):
+                continue
+            knob_id = str(item.get("knob_id", "")).strip()
+            if not knob_id:
+                continue
+            state[knob_id] = {
+                "enabled": True,
+                "low": float(item.get("low", 0.0)),
+                "high": float(item.get("high", 0.0)),
+            }
+        if state:
+            updates["knob_state"] = state
+    return updates

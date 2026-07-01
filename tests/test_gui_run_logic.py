@@ -12,6 +12,7 @@ if str(SRC) not in sys.path:
 from jitter_analysis.domain.types import RunMetadata, RunMode, RunResult, RunStatus
 from jitter_analysis.gui.run_logic import (
     loaded_run_object_count_hint,
+    loaded_run_parameter_updates,
     resolve_loaded_run_selection,
     run_browser_scope_kind,
     validate_loaded_run_config,
@@ -157,3 +158,68 @@ def test_loaded_run_object_count_hint_uses_targets_selection_then_records():
     assert loaded_run_object_count_hint({"target_object_ids": [" bpm_x ", "", "scope_a"]}) == 2
     assert loaded_run_object_count_hint({}, selected_object_ids=["bpm_x", "scope_a"]) == 2
     assert loaded_run_object_count_hint({}, record_pv_ids=["bpm_x", "bpm_x", "scope_a"]) == 2
+
+
+def test_loaded_run_parameter_updates_for_timed_acquisition():
+    updates = loaded_run_parameter_updates(
+        {"shot_interval_sec": "0.25", "sample_count": "12"},
+        RunMode.TIMED_ACQUISITION,
+    )
+
+    assert updates == {"shot_interval_sec": 0.25, "sample_count": 12}
+
+
+def test_loaded_run_parameter_updates_for_single_knob_scan():
+    updates = loaded_run_parameter_updates(
+        {
+            "settle_delay_sec": "0.5",
+            "shot_interval_sec": "0.1",
+            "sample_count_per_step": "3",
+            "restore_initial_value": True,
+            "scan_values": ["-0.1", 0, 0.25],
+        },
+        RunMode.KNOB_SCAN,
+    )
+
+    assert updates == {
+        "settle_delay_sec": 0.5,
+        "shot_interval_sec": 0.1,
+        "sample_count_per_step": 3,
+        "restore_initial_value": True,
+        "manual_scan_values_text": "-0.1, 0, 0.25",
+    }
+
+
+def test_loaded_run_parameter_updates_for_random_multi_knob():
+    updates = loaded_run_parameter_updates(
+        {
+            "settle_delay_sec": "0.5",
+            "shot_interval_sec": "0.1",
+            "sample_count_per_point": "4",
+            "num_points": "9",
+            "seed": 123,
+            "restore_initial_values": False,
+            "distribution": " uniform ",
+            "knob_ranges": [
+                {"knob_id": " k1 ", "low": "-1", "high": "1"},
+                {"knob_id": "", "low": 0, "high": 1},
+                "bad",
+                {"knob_id": "k2"},
+            ],
+        },
+        RunMode.MULTI_KNOB_RANDOM,
+    )
+
+    assert updates == {
+        "settle_delay_sec": 0.5,
+        "shot_interval_sec": 0.1,
+        "sample_count_per_point": 4,
+        "num_points": 9,
+        "seed": "123",
+        "restore_initial_values": False,
+        "distribution": "uniform",
+        "knob_state": {
+            "k1": {"enabled": True, "low": -1.0, "high": 1.0},
+            "k2": {"enabled": True, "low": 0.0, "high": 0.0},
+        },
+    }
