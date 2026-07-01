@@ -62,6 +62,7 @@ if __package__ in {None, ""}:
         series_sample_indices,
         series_step_indices,
     )
+    from jitter_analysis.gui.selection_logic import normalize_selection_for_available_pvs
     from jitter_analysis.gui.run_logic import (
         loaded_run_object_count_hint,
         loaded_run_parameter_updates,
@@ -141,6 +142,7 @@ else:
         series_sample_indices,
         series_step_indices,
     )
+    from .selection_logic import normalize_selection_for_available_pvs
     from .run_logic import (
         loaded_run_object_count_hint,
         loaded_run_parameter_updates,
@@ -1462,19 +1464,16 @@ class MainWindow(_MainWindowBase):
         if self.loaded_config is None:
             return
 
-        knob_ids = {knob.id for knob in self.loaded_config.knobs}
-        object_ids = {obj.id for obj in self.loaded_config.objects}
-        self.state.selected_knob_ids = [
-            knob_id for knob_id in self.state.selected_knob_ids if knob_id in knob_ids
-        ]
-        self.state.active_knob_id = (
-            self.state.active_knob_id if self.state.active_knob_id in knob_ids else None
+        selection = normalize_selection_for_available_pvs(
+            self.state.selected_knob_ids,
+            self.state.active_knob_id,
+            self.state.selected_object_ids,
+            [knob.id for knob in self.loaded_config.knobs],
+            [obj.id for obj in self.loaded_config.objects],
         )
-        if self.state.active_knob_id not in self.state.selected_knob_ids:
-            self.state.active_knob_id = self.state.selected_knob_ids[0] if self.state.selected_knob_ids else None
-        self.state.selected_object_ids = [
-            object_id for object_id in self.state.selected_object_ids if object_id in object_ids
-        ]
+        self.state.selected_knob_ids = list(selection["selected_knob_ids"])
+        self.state.active_knob_id = selection["active_knob_id"]
+        self.state.selected_object_ids = list(selection["selected_object_ids"])
 
         group_labels = {group.id: group.label for group in self.loaded_config.groups}
         self.object_panel.set_library_objects(self.loaded_config.objects, group_labels)
