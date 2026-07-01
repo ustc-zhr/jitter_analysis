@@ -10,7 +10,12 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from jitter_analysis.domain.types import RunMetadata, RunMode, RunResult, RunStatus
-from jitter_analysis.gui.run_logic import run_browser_scope_kind, validate_loaded_run_config
+from jitter_analysis.gui.run_logic import (
+    loaded_run_object_count_hint,
+    resolve_loaded_run_selection,
+    run_browser_scope_kind,
+    validate_loaded_run_config,
+)
 
 
 def _config(object_ids=(), knob_ids=()):
@@ -87,3 +92,68 @@ def test_validate_loaded_run_config_reports_missing_multi_knob_ids():
 
     assert ok is False
     assert "control PV IDs: missing_knob" in message
+
+
+def test_resolve_loaded_run_selection_prefers_record_then_series_object_ids():
+    selection = resolve_loaded_run_selection(
+        {},
+        RunMode.TIMED_ACQUISITION,
+        available_object_ids={"bpm_x", "bpm_y", "scope_a"},
+        record_pv_ids=["ignored", "bpm_x", "bpm_y", "bpm_x"],
+        series_pv_ids=["scope_a"],
+    )
+
+    assert selection == {
+        "selected_object_ids": ["bpm_x", "bpm_y"],
+        "selected_knob_ids": [],
+        "active_knob_id": None,
+    }
+
+    fallback_selection = resolve_loaded_run_selection(
+        {},
+        RunMode.TIMED_ACQUISITION,
+        available_object_ids={"scope_a"},
+        record_pv_ids=["ignored"],
+        series_pv_ids=["scope_a"],
+    )
+
+    assert fallback_selection["selected_object_ids"] == ["scope_a"]
+
+
+def test_resolve_loaded_run_selection_uses_recorded_objects_and_knob_mode():
+    selection = resolve_loaded_run_selection(
+        {"target_object_ids": ["bpm_x"], "knob_id": " k1 "},
+        RunMode.KNOB_SCAN,
+        available_object_ids={"bpm_x"},
+    )
+
+    assert selection == {
+        "selected_object_ids": ["bpm_x"],
+        "selected_knob_ids": ["k1"],
+        "active_knob_id": "k1",
+    }
+
+
+def test_resolve_loaded_run_selection_uses_random_knob_ranges():
+    selection = resolve_loaded_run_selection(
+        {
+            "target_object_ids": ["bpm_x"],
+            "knob_ranges": [
+                {"knob_id": "k1"},
+                {"knob_id": ""},
+                "bad",
+                {"knob_id": "k2"},
+            ],
+        },
+        RunMode.MULTI_KNOB_RANDOM,
+        available_object_ids={"bpm_x"},
+    )
+
+    assert selection["selected_knob_ids"] == ["k1", "k2"]
+    assert selection["active_knob_id"] == "k1"
+
+
+def test_loaded_run_object_count_hint_uses_targets_selection_then_records():
+    assert loaded_run_object_count_hint({"target_object_ids": [" bpm_x ", "", "scope_a"]}) == 2
+    assert loaded_run_object_count_hint({}, selected_object_ids=["bpm_x", "scope_a"]) == 2
+    assert loaded_run_object_count_hint({}, record_pv_ids=["bpm_x", "bpm_x", "scope_a"]) == 2

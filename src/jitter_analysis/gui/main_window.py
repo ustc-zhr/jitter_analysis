@@ -58,7 +58,12 @@ if __package__ in {None, ""}:
         parse_manual_scan_values,
         resolve_random_seed,
     )
-    from jitter_analysis.gui.run_logic import run_browser_scope_kind, validate_loaded_run_config
+    from jitter_analysis.gui.run_logic import (
+        loaded_run_object_count_hint,
+        resolve_loaded_run_selection,
+        run_browser_scope_kind,
+        validate_loaded_run_config,
+    )
     from jitter_analysis.gui.setup_logic import list_saved_setups
     from jitter_analysis.gui.waveform_analysis import WaveformAnalysisWorker
     from jitter_analysis.gui.plots.correlation_plot import CorrelationPlot
@@ -119,7 +124,12 @@ else:
         parse_manual_scan_values,
         resolve_random_seed,
     )
-    from .run_logic import run_browser_scope_kind, validate_loaded_run_config
+    from .run_logic import (
+        loaded_run_object_count_hint,
+        resolve_loaded_run_selection,
+        run_browser_scope_kind,
+        validate_loaded_run_config,
+    )
     from .setup_logic import list_saved_setups
     from .waveform_analysis import WaveformAnalysisWorker
     from .plots.correlation_plot import CorrelationPlot
@@ -1361,38 +1371,16 @@ class MainWindow(_MainWindowBase):
         if self.loaded_config is None:
             return
 
-        selected_object_ids = list(self.current_run_details.get("target_object_ids", []))
-        if not selected_object_ids:
-            known_object_ids = {obj.id for obj in self.loaded_config.objects}
-            seen = []
-            for sample in self.current_run_records:
-                if sample.pv_id in known_object_ids and sample.pv_id not in seen:
-                    seen.append(sample.pv_id)
-            if not seen:
-                for pv_id in self.current_series_values:
-                    if pv_id in known_object_ids and pv_id not in seen:
-                        seen.append(pv_id)
-            selected_object_ids = seen
-
-        selected_knob_ids: list[str] = []
-        active_knob_id = None
-        if self.current_run_mode == RunMode.KNOB_SCAN:
-            knob_id = str(self.current_run_details.get("knob_id", "")).strip()
-            if knob_id:
-                selected_knob_ids = [knob_id]
-                active_knob_id = knob_id
-        elif self.current_run_mode == RunMode.MULTI_KNOB_RANDOM:
-            knob_ranges = self.current_run_details.get("knob_ranges", [])
-            selected_knob_ids = [
-                str(item.get("knob_id"))
-                for item in knob_ranges
-                if isinstance(item, dict) and str(item.get("knob_id", "")).strip()
-            ]
-            active_knob_id = selected_knob_ids[0] if selected_knob_ids else None
-
-        self.state.selected_object_ids = selected_object_ids
-        self.state.selected_knob_ids = selected_knob_ids
-        self.state.active_knob_id = active_knob_id
+        selection = resolve_loaded_run_selection(
+            self.current_run_details,
+            self.current_run_mode,
+            {obj.id for obj in self.loaded_config.objects},
+            [sample.pv_id for sample in self.current_run_records],
+            self.current_series_values.keys(),
+        )
+        self.state.selected_object_ids = list(selection["selected_object_ids"])
+        self.state.selected_knob_ids = list(selection["selected_knob_ids"])
+        self.state.active_knob_id = selection["active_knob_id"]
         self._refresh_selected_pvs()
 
     def _apply_loaded_run_mode(self) -> None:
@@ -3512,21 +3500,11 @@ class MainWindow(_MainWindowBase):
         self._refresh_ui_affordances()
 
     def _loaded_run_object_count_hint(self) -> int:
-        target_object_ids = [
-            str(item).strip()
-            for item in self.current_run_details.get("target_object_ids", [])
-            if str(item).strip()
-        ]
-        if target_object_ids:
-            return len(target_object_ids)
-        selected_objects = self._selected_objects()
-        if selected_objects:
-            return len(selected_objects)
-        seen_ids = []
-        for sample in self.current_run_records:
-            if sample.pv_id not in seen_ids:
-                seen_ids.append(sample.pv_id)
-        return len(seen_ids)
+        return loaded_run_object_count_hint(
+            self.current_run_details,
+            [obj.id for obj in self._selected_objects()],
+            [sample.pv_id for sample in self.current_run_records],
+        )
 
     def _cleanup_acquisition_thread(self) -> None:
         if self.acquisition_worker is not None:
