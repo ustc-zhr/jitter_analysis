@@ -42,6 +42,7 @@ if __package__ in {None, ""}:
     from jitter_analysis.gui.view_logic import (
         estimate_series_sample_interval,
         estimate_series_sample_interval_from_sample_indices,
+        mode_ready_state,
         mode_key_from_run_mode,
         progress_tone,
         run_status_tone,
@@ -122,6 +123,7 @@ else:
     from .view_logic import (
         estimate_series_sample_interval,
         estimate_series_sample_interval_from_sample_indices,
+        mode_ready_state,
         mode_key_from_run_mode,
         progress_tone,
         run_status_tone,
@@ -1779,42 +1781,26 @@ class MainWindow(_MainWindowBase):
         return (tuple(self.state.selected_knob_ids), tuple(self.state.selected_object_ids))
 
     def _mode_ready_state(self, mode: str) -> tuple[bool, str]:
-        if self.state.run_status == RunStatus.RUNNING:
-            return False, "Run in progress. Stop the current run to change PVs or mode."
-
-        if self.loaded_config is None:
-            return False, "Next: load a PV library."
-
-        selected_objects = self._selected_objects()
-        selected_knobs = self._selected_knobs()
-        active_knob = self._active_knob()
-
-        if not selected_objects and not selected_knobs:
-            return False, "Next: choose read PVs and control PVs with 'Choose PVs...'."
-
-        if mode == "timed_acquisition":
-            if not selected_objects:
-                return False, "Next: choose at least one read PV for Monitor."
-            return True, "Ready: click Start to run Monitor."
-
-        if mode == "single_knob_scan":
-            if not selected_knobs:
-                return False, "Next: choose at least one control PV to enable Single Knob."
-            if active_knob is None:
-                return False, "Next: choose the active control PV for Single Knob."
-            if not selected_objects:
-                return False, "Next: choose at least one read PV to sample during Single Knob."
-            return True, "Ready: click Start to run Single Knob."
-
-        if not selected_knobs:
-            return False, "Next: choose control PVs to enable Random Multi-Knob."
-        if not selected_objects:
-            return False, "Next: choose at least one read PV to sample during Random Multi-Knob."
-        try:
-            self._collect_random_knob_ranges()
-        except ValueError:
-            return False, "Next: open 'Configure Ranges...' and enable at least one valid control PV range."
-        return True, "Ready: click Start to run Random Multi-Knob."
+        config_loaded = self.loaded_config is not None
+        selected_objects = self._selected_objects() if config_loaded else []
+        selected_knobs = self._selected_knobs() if config_loaded else []
+        active_knob = self._active_knob() if config_loaded else None
+        random_ranges_valid = False
+        if config_loaded and selected_objects and selected_knobs:
+            try:
+                self._collect_random_knob_ranges()
+                random_ranges_valid = True
+            except ValueError:
+                random_ranges_valid = False
+        return mode_ready_state(
+            mode,
+            run_status=self.state.run_status,
+            config_loaded=config_loaded,
+            selected_object_count=len(selected_objects),
+            selected_knob_count=len(selected_knobs),
+            active_knob_available=active_knob is not None,
+            random_ranges_valid=random_ranges_valid,
+        )
 
     def _refresh_ui_affordances(self) -> None:
         mode = self.scan_panel.task_mode()

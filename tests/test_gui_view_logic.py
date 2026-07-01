@@ -14,6 +14,7 @@ from jitter_analysis.domain.types import RunMode, RunStatus, ScanStepRecord
 from jitter_analysis.gui.view_logic import (
     estimate_series_sample_interval,
     estimate_series_sample_interval_from_sample_indices,
+    mode_ready_state,
     mode_key_from_run_mode,
     progress_tone,
     run_status_tone,
@@ -31,6 +32,105 @@ def test_mode_and_tone_helpers():
     assert progress_tone(10, 10) == "success"
     assert run_status_tone(RunStatus.COMPLETED) == "success"
     assert run_status_tone(RunStatus.FAILED) == "danger"
+
+
+def test_mode_ready_state_handles_global_blockers():
+    assert mode_ready_state(
+        "timed_acquisition",
+        run_status=RunStatus.RUNNING,
+        config_loaded=True,
+        selected_object_count=1,
+        selected_knob_count=0,
+        active_knob_available=False,
+        random_ranges_valid=False,
+    ) == (False, "Run in progress. Stop the current run to change PVs or mode.")
+    assert mode_ready_state(
+        "timed_acquisition",
+        run_status=RunStatus.IDLE,
+        config_loaded=False,
+        selected_object_count=0,
+        selected_knob_count=0,
+        active_knob_available=False,
+        random_ranges_valid=False,
+    ) == (False, "Next: load a PV library.")
+    assert mode_ready_state(
+        "timed_acquisition",
+        run_status=RunStatus.IDLE,
+        config_loaded=True,
+        selected_object_count=0,
+        selected_knob_count=0,
+        active_knob_available=False,
+        random_ranges_valid=False,
+    ) == (False, "Next: choose read PVs and control PVs with 'Choose PVs...'.")
+
+
+def test_mode_ready_state_for_monitor_and_single_knob_modes():
+    assert mode_ready_state(
+        "timed_acquisition",
+        run_status=RunStatus.IDLE,
+        config_loaded=True,
+        selected_object_count=1,
+        selected_knob_count=0,
+        active_knob_available=False,
+        random_ranges_valid=False,
+    ) == (True, "Ready: click Start to run Monitor.")
+    assert mode_ready_state(
+        "single_knob_scan",
+        run_status=RunStatus.IDLE,
+        config_loaded=True,
+        selected_object_count=1,
+        selected_knob_count=1,
+        active_knob_available=False,
+        random_ranges_valid=False,
+    ) == (False, "Next: choose the active control PV for Single Knob.")
+    assert mode_ready_state(
+        "single_knob_scan",
+        run_status=RunStatus.IDLE,
+        config_loaded=True,
+        selected_object_count=1,
+        selected_knob_count=1,
+        active_knob_available=True,
+        random_ranges_valid=False,
+    ) == (True, "Ready: click Start to run Single Knob.")
+
+
+def test_mode_ready_state_for_random_multi_knob_mode():
+    assert mode_ready_state(
+        "multi_knob_random",
+        run_status=RunStatus.IDLE,
+        config_loaded=True,
+        selected_object_count=1,
+        selected_knob_count=0,
+        active_knob_available=False,
+        random_ranges_valid=False,
+    ) == (False, "Next: choose control PVs to enable Random Multi-Knob.")
+    assert mode_ready_state(
+        "multi_knob_random",
+        run_status=RunStatus.IDLE,
+        config_loaded=True,
+        selected_object_count=0,
+        selected_knob_count=1,
+        active_knob_available=True,
+        random_ranges_valid=False,
+    ) == (False, "Next: choose at least one read PV to sample during Random Multi-Knob.")
+    assert mode_ready_state(
+        "multi_knob_random",
+        run_status=RunStatus.IDLE,
+        config_loaded=True,
+        selected_object_count=1,
+        selected_knob_count=1,
+        active_knob_available=True,
+        random_ranges_valid=False,
+    ) == (False, "Next: open 'Configure Ranges...' and enable at least one valid control PV range.")
+    assert mode_ready_state(
+        "multi_knob_random",
+        run_status=RunStatus.IDLE,
+        config_loaded=True,
+        selected_object_count=1,
+        selected_knob_count=1,
+        active_knob_available=True,
+        random_ranges_valid=True,
+    ) == (True, "Ready: click Start to run Random Multi-Knob.")
 
 
 def test_single_knob_axis_helpers():

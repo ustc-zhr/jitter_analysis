@@ -35,6 +35,48 @@ def run_status_tone(status: RunStatus) -> str:
     return "subtle"
 
 
+def mode_ready_state(
+    mode: str,
+    *,
+    run_status: RunStatus,
+    config_loaded: bool,
+    selected_object_count: int,
+    selected_knob_count: int,
+    active_knob_available: bool,
+    random_ranges_valid: bool,
+) -> tuple[bool, str]:
+    if run_status == RunStatus.RUNNING:
+        return False, "Run in progress. Stop the current run to change PVs or mode."
+
+    if not config_loaded:
+        return False, "Next: load a PV library."
+
+    if selected_object_count <= 0 and selected_knob_count <= 0:
+        return False, "Next: choose read PVs and control PVs with 'Choose PVs...'."
+
+    if mode == "timed_acquisition":
+        if selected_object_count <= 0:
+            return False, "Next: choose at least one read PV for Monitor."
+        return True, "Ready: click Start to run Monitor."
+
+    if mode == "single_knob_scan":
+        if selected_knob_count <= 0:
+            return False, "Next: choose at least one control PV to enable Single Knob."
+        if not active_knob_available:
+            return False, "Next: choose the active control PV for Single Knob."
+        if selected_object_count <= 0:
+            return False, "Next: choose at least one read PV to sample during Single Knob."
+        return True, "Ready: click Start to run Single Knob."
+
+    if selected_knob_count <= 0:
+        return False, "Next: choose control PVs to enable Random Multi-Knob."
+    if selected_object_count <= 0:
+        return False, "Next: choose at least one read PV to sample during Random Multi-Knob."
+    if not random_ranges_valid:
+        return False, "Next: open 'Configure Ranges...' and enable at least one valid control PV range."
+    return True, "Ready: click Start to run Random Multi-Knob."
+
+
 def single_knob_axis_name(axis_source: str, knob_name: str = "") -> str:
     base_name = knob_name.strip() or "Knob Value"
     if axis_source == "target":
