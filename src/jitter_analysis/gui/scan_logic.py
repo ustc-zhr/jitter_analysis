@@ -119,3 +119,31 @@ def generate_random_targets(knob_ranges, distribution: str, num_points: int, see
             step_targets[knob.id] = value
         target_steps.append(step_targets)
     return target_steps
+
+
+def random_preview_payload(knob_ranges, target_steps, distribution: str, seed: int, preview_limit: int = 20):
+    preview_count = min(len(target_steps), int(preview_limit))
+    lines = []
+    for index in range(preview_count):
+        values = target_steps[index]
+        parts = []
+        for spec in knob_ranges:
+            knob = spec["knob"]
+            parts.append(f"{knob.name}={float(values[knob.id]):.6g}")
+        lines.append(f"{index + 1:03d}: " + ", ".join(parts))
+    if len(target_steps) > preview_count:
+        lines.append(f"... {len(target_steps) - preview_count} more point(s)")
+
+    summary = (
+        f"{len(target_steps)} random point(s) across {len(knob_ranges)} knob(s)"
+        f"  |  distribution={distribution}  |  seed={seed}"
+    )
+    detail = ", ".join(
+        f"{spec['knob'].name}[{spec['low']:.6g}, {spec['high']:.6g}]"
+        for spec in knob_ranges
+    )
+    return {
+        "lines": lines,
+        "summary": summary,
+        "detail": detail,
+    }

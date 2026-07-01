@@ -16,6 +16,7 @@ from jitter_analysis.gui.scan_logic import (
     generate_values_by_points,
     generate_values_by_step,
     parse_manual_scan_values,
+    random_preview_payload,
     resolve_random_seed,
 )
 
@@ -117,3 +118,31 @@ def test_generate_random_targets_rejects_invalid_inputs():
         generate_random_targets(knob_ranges, "uniform", 0, 1)
     with pytest.raises(ValueError, match="Unsupported random distribution"):
         generate_random_targets(knob_ranges, "bad", 1, 1)
+
+
+def test_random_preview_payload_formats_preview_lines_summary_and_detail():
+    knob_ranges = [
+        {"knob": _Knob("k1", "K1"), "low": -1.0, "high": 1.0},
+        {"knob": _Knob("k2", "K2"), "low": 2.0, "high": 3.0},
+    ]
+    target_steps = [
+        {"k1": 0.1234567, "k2": 2.0},
+        {"k1": -0.5, "k2": 2.75},
+        {"k1": 1.0, "k2": 3.0},
+    ]
+
+    payload = random_preview_payload(
+        knob_ranges,
+        target_steps,
+        distribution="uniform",
+        seed=42,
+        preview_limit=2,
+    )
+
+    assert payload["lines"] == [
+        "001: K1=0.123457, K2=2",
+        "002: K1=-0.5, K2=2.75",
+        "... 1 more point(s)",
+    ]
+    assert payload["summary"] == "3 random point(s) across 2 knob(s)  |  distribution=uniform  |  seed=42"
+    assert payload["detail"] == "K1[-1, 1], K2[2, 3]"

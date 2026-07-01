@@ -59,6 +59,7 @@ if __package__ in {None, ""}:
         generate_values_by_points,
         generate_values_by_step,
         parse_manual_scan_values,
+        random_preview_payload,
         resolve_random_seed,
     )
     from jitter_analysis.gui.series_logic import (
@@ -145,6 +146,7 @@ else:
         generate_values_by_points,
         generate_values_by_step,
         parse_manual_scan_values,
+        random_preview_payload,
         resolve_random_seed,
     )
     from .series_logic import (
@@ -1707,28 +1709,18 @@ class MainWindow(_MainWindowBase):
             self.scan_panel.set_random_preview_message(str(exc))
             return
 
-        preview_limit = min(len(target_steps), 20)
-        lines = []
-        for index in range(preview_limit):
-            values = target_steps[index]
-            parts = []
-            for spec in knob_ranges:
-                knob = spec["knob"]
-                parts.append(f"{knob.name}={float(values[knob.id]):.6g}")
-            lines.append(f"{index + 1:03d}: " + ", ".join(parts))
-        if len(target_steps) > preview_limit:
-            lines.append(f"... {len(target_steps) - preview_limit} more point(s)")
-
-        summary = (
-            f"{len(target_steps)} random point(s) across {len(knob_ranges)} knob(s)"
-            f"  |  distribution={config['distribution']}  |  seed={seed}"
-        )
-        detail = ", ".join(
-            f"{spec['knob'].name}[{spec['low']:.6g}, {spec['high']:.6g}]"
-            for spec in knob_ranges
+        preview = random_preview_payload(
+            knob_ranges,
+            target_steps,
+            distribution=str(config["distribution"]),
+            seed=seed,
         )
         self.scan_panel.set_random_seed(seed)
-        self.scan_panel.set_random_preview(lines, summary=summary, detail=detail)
+        self.scan_panel.set_random_preview(
+            preview["lines"],
+            summary=preview["summary"],
+            detail=preview["detail"],
+        )
 
     def refresh_scan_preview(self, *args, force_live_center: bool = False) -> None:
         del args
