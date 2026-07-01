@@ -249,6 +249,7 @@ class RunStore:
         self,
         path: str | Path,
         minimum_record_count: int = TIMED_FAST_PATH_MIN_RECORDS,
+        requested_object_ids: list[str] | None = None,
     ) -> TimedRunSeriesSnapshot | None:
         run_dir = self._resolve_run_dir(path)
         raw_path = run_dir / "raw.h5"
@@ -269,6 +270,7 @@ class RunStore:
                 metadata_payload,
                 summary_payload,
                 minimum_record_count=minimum_record_count,
+                requested_object_ids=requested_object_ids,
             )
 
     def load_waveform_index(self, path: str | Path) -> list[WaveformIndexEntry]:
@@ -407,6 +409,7 @@ class RunStore:
         summary_payload: dict,
         *,
         minimum_record_count: int,
+        requested_object_ids: list[str] | None = None,
     ) -> TimedRunSeriesSnapshot | None:
         metadata = cls._load_metadata(handle, metadata_payload)
         if metadata.mode != RunMode.TIMED_ACQUISITION:
@@ -420,15 +423,15 @@ class RunStore:
             return None
 
         details = cls._load_details(handle, summary_payload)
-        object_ids = [
+        ordered_object_ids = [
             str(item).strip()
-            for item in details.get("target_object_ids", [])
+            for item in details.get("scalar_object_ids", []) or details.get("target_object_ids", [])
             if str(item).strip()
         ]
-        if not object_ids:
-            object_ids = cls._infer_timed_fast_path_object_ids(dataset)
+        if not ordered_object_ids:
+            ordered_object_ids = cls._infer_timed_fast_path_object_ids(dataset)
 
-        object_count = len(object_ids)
+        object_count = len(ordered_object_ids)
         if object_count <= 0 or record_count <= 0 or record_count % object_count != 0:
             return None
 
@@ -436,8 +439,29 @@ class RunStore:
             str(cls._decode(item)).strip()
             for item in cls._read_dataset_field(dataset, "pv_id", slice(0, object_count))
         ]
-        if first_batch_ids != object_ids:
+        if first_batch_ids != ordered_object_ids:
             return None
+
+        requested_ids = [
+            str(item).strip()
+            for item in (requested_object_ids or [])
+            if str(item).strip()
+        ]
+        if requested_ids:
+            requested_set = set(requested_ids)
+            selected_columns = [
+                index
+                for index, object_id in enumerate(ordered_object_ids)
+                if object_id in requested_set
+            ]
+            selected_object_ids = [
+                object_id
+                for object_id in ordered_object_ids
+                if object_id in requested_set
+            ]
+        else:
+            selected_columns = list(range(object_count))
+            selected_object_ids = list(ordered_object_ids)
 
         logical_sample_count = record_count // object_count
         raw_values = cls._read_dataset_field(dataset, "value")
@@ -451,11 +475,11 @@ class RunStore:
         shared_sample_indices = list(range(logical_sample_count))
         series_values = {
             object_id: value_matrix[:, index].tolist()
-            for index, object_id in enumerate(object_ids)
+            for index, object_id in zip(selected_columns, selected_object_ids)
         }
         series_sample_indices = {
             object_id: shared_sample_indices
-            for object_id in object_ids
+            for object_id in selected_object_ids
         }
         sample_fields = set(getattr(dataset.dtype, "names", ()) or ())
 
@@ -464,7 +488,7 @@ class RunStore:
             status=cls._load_status(handle, summary_payload),
             warnings=cls._load_warnings(handle, summary_payload),
             details=details,
-            ordered_object_ids=list(object_ids),
+            ordered_object_ids=list(ordered_object_ids),
             series_values=series_values,
             series_sample_indices=series_sample_indices,
             sample_timestamps=sample_timestamps,

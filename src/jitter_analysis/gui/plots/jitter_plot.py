@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+from datetime import datetime
+
 from ...analysis.jitter import transform_jitter_values
 from .visibility import resolve_initial_visibility
+from .trend_plot import TrendAxisItem
 
 try:
     from PyQt5 import QtCore, QtWidgets
@@ -17,7 +21,8 @@ except ImportError:  # pragma: no cover - optional runtime dependency
 
 if QtWidgets is not None:
 
-    DEFAULT_VISIBLE_JITTER_SERIES = 3
+    DEFAULT_VISIBLE_JITTER_SERIES = 1
+    MAX_SYMBOL_POINTS_PER_SERIES = 5000
 
     class JitterPlot(QtWidgets.QWidget):
         def __init__(self, parent=None) -> None:
@@ -26,6 +31,9 @@ if QtWidgets is not None:
             self._series_visibility = {}
             self._focused_pv_id = None
             self._mean_lines = []
+            self._sample_elapsed_seconds = []
+            self._time_origin = None
+            self._time_origin_epoch_seconds = None
 
             layout = QtWidgets.QVBoxLayout(self)
 
@@ -47,6 +55,12 @@ if QtWidgets is not None:
                 "Choose raw values, mean-centered values, or z-score normalization for comparison."
             )
             controls.addWidget(self.display_mode_combo, 0)
+            controls.addWidget(QtWidgets.QLabel("X Axis"))
+            self.axis_combo = QtWidgets.QComboBox(self)
+            self.axis_combo.addItem("Sample Index", "sample_index")
+            self.axis_combo.addItem("Elapsed Time", "elapsed_time")
+            self.axis_combo.addItem("Clock Time", "clock_time")
+            controls.addWidget(self.axis_combo, 0)
             controls.addStretch(1)
             layout.addLayout(controls)
 
@@ -55,7 +69,11 @@ if QtWidgets is not None:
             layout.addWidget(self.info_label)
 
             if pg is not None:
-                self.plot_widget = pg.PlotWidget(title="Jitter Points")
+                self._bottom_axis = TrendAxisItem(orientation="bottom") if TrendAxisItem is not None else None
+                if self._bottom_axis is not None:
+                    self.plot_widget = pg.PlotWidget(title="Jitter Points", axisItems={"bottom": self._bottom_axis})
+                else:
+                    self.plot_widget = pg.PlotWidget(title="Jitter Points")
                 self.plot_widget.addLegend()
                 self.plot_widget.setLabel("bottom", "Sample Index")
                 self.plot_widget.setLabel("left", "Value")
@@ -66,12 +84,16 @@ if QtWidgets is not None:
                 layout.addWidget(QtWidgets.QLabel("pyqtgraph is not installed"))
 
             self.display_mode_combo.currentIndexChanged.connect(self._render_series)
+            self.axis_combo.currentIndexChanged.connect(self._render_series)
 
         def clear_data(self, message: str) -> None:
             self._series_rows = []
             self._series_visibility = {}
             self._focused_pv_id = None
             self._mean_lines = []
+            self._sample_elapsed_seconds = []
+            self._time_origin = None
+            self._time_origin_epoch_seconds = None
             self.info_label.setText(message)
             self._rebuild_series_menu()
             if self.plot_widget is not None:
@@ -96,9 +118,11 @@ if QtWidgets is not None:
             rows,
             current_pv_ids: list[str] | None = None,
             focused_pv_id: str | None = None,
+            sample_timestamps: Sequence[datetime | None] | None = None,
         ) -> None:
             previous_visibility = dict(self._series_visibility)
             self._series_rows = list(rows)
+            self._set_sample_timestamps(sample_timestamps)
             self._series_visibility = resolve_initial_visibility(
                 [str(row["pv_id"]) for row in self._series_rows],
                 previous_visibility=previous_visibility,
@@ -195,6 +219,57 @@ if QtWidgets is not None:
         def _display_mode(self) -> str:
             return str(self.display_mode_combo.currentData() or "raw")
 
+        def _axis_mode(self) -> str:
+            return str(self.axis_combo.currentData() or "sample_index")
+
+        def _set_sample_timestamps(self, sample_timestamps: Sequence[datetime | None] | None) -> None:
+            self._sample_elapsed_seconds = []
+            self._time_origin = None
+            self._time_origin_epoch_seconds = None
+            if sample_timestamps is None:
+                return
+            for sample_index, timestamp in enumerate(sample_timestamps):
+                self._record_sample_time(sample_index, timestamp)
+
+        def _record_sample_time(self, sample_index: int, timestamp: datetime | None) -> None:
+            if timestamp is None or sample_index < 0:
+                return
+            if self._time_origin is None:
+                self._time_origin = timestamp
+                self._time_origin_epoch_seconds = float(timestamp.timestamp())
+            elapsed_seconds = (timestamp - self._time_origin).total_seconds()
+            if sample_index >= len(self._sample_elapsed_seconds):
+                self._sample_elapsed_seconds.extend([None] * (sample_index + 1 - len(self._sample_elapsed_seconds)))
+            if self._sample_elapsed_seconds[sample_index] is None:
+                self._sample_elapsed_seconds[sample_index] = float(elapsed_seconds)
+
+        def _axis_value_for_index(self, sample_index: int, axis_mode: str | None = None) -> float:
+            mode = str(axis_mode or self._axis_mode())
+            if mode == "sample_index":
+                return float(sample_index)
+            if 0 <= sample_index < len(self._sample_elapsed_seconds):
+                elapsed_seconds = self._sample_elapsed_seconds[sample_index]
+                if elapsed_seconds is not None:
+                    if mode == "clock_time" and self._time_origin_epoch_seconds is not None:
+                        return float(self._time_origin_epoch_seconds + elapsed_seconds)
+                    return float(elapsed_seconds)
+            return float(sample_index)
+
+        def _x_values_for_sample_indices(self, sample_indices) -> list[float]:
+            axis_mode = self._axis_mode()
+            if self._bottom_axis is not None:
+                self._bottom_axis.set_axis_mode(axis_mode)
+            if axis_mode == "elapsed_time":
+                if self.plot_widget is not None:
+                    self.plot_widget.setLabel("bottom", "Elapsed Time [s]")
+            elif axis_mode == "clock_time":
+                if self.plot_widget is not None:
+                    self.plot_widget.setLabel("bottom", "Clock Time")
+            else:
+                if self.plot_widget is not None:
+                    self.plot_widget.setLabel("bottom", "Sample Index")
+            return [self._axis_value_for_index(int(item), axis_mode=axis_mode) for item in sample_indices]
+
         def _render_series(self) -> None:
             visible_rows = [
                 row for row in self._series_rows if self._series_visibility.get(str(row["pv_id"]), True)
@@ -242,11 +317,21 @@ if QtWidgets is not None:
             else:
                 count_phrase = f"count={kept_count}"
                 filter_note = ""
+            symbol_disabled_count = sum(
+                1
+                for row in visible_rows
+                if len(row.get("values", [])) > MAX_SYMBOL_POINTS_PER_SERIES
+            )
+            symbol_note = (
+                f" Symbols disabled for {symbol_disabled_count} large series."
+                if symbol_disabled_count
+                else ""
+            )
             self.info_label.setText(
                 f"Showing {len(visible_rows)}/{len(self._series_rows)} variables. "
                 f"Focus: {focused_label}, {count_phrase}{filter_note}, mean={float(focused_row['mean']):.6g}, "
                 f"std={float(focused_row['std']):.6g}, jitter rms={float(focused_row['rms']):.6g}, "
-                f"p2p={float(focused_row['p2p']):.6g}, plot={value_phrase}.{fallback_note}"
+                f"p2p={float(focused_row['p2p']):.6g}, plot={value_phrase}.{fallback_note}{symbol_note}"
             )
 
             if self.plot_widget is None:
@@ -260,7 +345,7 @@ if QtWidgets is not None:
                 self.plot_widget.setTitle("Jitter Points (Z-Score Normalized)")
             else:
                 self.plot_widget.setTitle("Jitter Points")
-            self.plot_widget.setLabel("bottom", "Sample Index")
+            self._x_values_for_sample_indices([0])
             units = {str(row.get("unit", "")).strip() for row in visible_rows if str(row.get("unit", "")).strip()}
             if requested_mode == "z_score":
                 self.plot_widget.setLabel("left", "Z-score")
@@ -288,16 +373,24 @@ if QtWidgets is not None:
                 color = pg.intColor(index, hues=max(len(visible_rows), 1))
                 focused = pv_id == str(self._focused_pv_id)
                 pen_width = 2.5 if focused else 1.5
-                symbol_size = 7 if focused else 5
+                use_symbols = len(values) <= MAX_SYMBOL_POINTS_PER_SERIES
+                plot_kwargs = {
+                    "pen": pg.mkPen(color=color, width=pen_width),
+                    "name": str(row["label"]),
+                }
+                if use_symbols:
+                    plot_kwargs.update(
+                        {
+                            "symbol": "o",
+                            "symbolSize": 7 if focused else 5,
+                            "symbolBrush": pg.mkBrush(color),
+                            "symbolPen": pg.mkPen(color, width=1),
+                        }
+                    )
                 self.plot_widget.plot(
-                    sample_indices,
+                    self._x_values_for_sample_indices(sample_indices),
                     values,
-                    pen=pg.mkPen(color=color, width=pen_width),
-                    symbol="o",
-                    symbolSize=symbol_size,
-                    symbolBrush=pg.mkBrush(color),
-                    symbolPen=pg.mkPen(color, width=1),
-                    name=str(row["label"]),
+                    **plot_kwargs,
                 )
                 if focused:
                     mean_line = pg.InfiniteLine(

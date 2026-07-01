@@ -68,10 +68,12 @@ class RunService:
         self,
         path: str,
         minimum_record_count: int = RunStore.TIMED_FAST_PATH_MIN_RECORDS,
+        requested_object_ids: list[str] | None = None,
     ) -> TimedRunSeriesSnapshot | None:
         return self.store.load_timed_acquisition_series_fast(
             path,
             minimum_record_count=minimum_record_count,
+            requested_object_ids=requested_object_ids,
         )
 
     def load_waveform_index(self, path: str) -> list[WaveformIndexEntry]:

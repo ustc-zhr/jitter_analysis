@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+import math
 
 
 def resolve_initial_visibility(
@@ -60,3 +61,49 @@ def _slice_sequence_tail(values: Sequence[float], limit: int) -> Sequence[float]
     except TypeError:
         rows = list(values)
         return rows[-limit:] if limit > 0 else rows[:0]
+
+
+def downsample_series_min_max(
+    x_values: Sequence[float],
+    y_values: Sequence[float],
+    max_points: int,
+) -> tuple[list[float], list[float], bool]:
+    """Reduce display points while preserving local extrema in each bucket."""
+
+    limit = max(int(max_points), 0)
+    length = min(len(x_values), len(y_values))
+    if limit <= 0:
+        return [], [], length > 0
+    if length <= limit:
+        return list(x_values[:length]), list(y_values[:length]), False
+
+    bucket_count = max(limit // 2, 1)
+    bucket_size = max(int(math.ceil(length / bucket_count)), 1)
+    sampled_indices: list[int] = []
+
+    for start in range(0, length, bucket_size):
+        stop = min(start + bucket_size, length)
+        bucket = y_values[start:stop]
+        if not bucket:
+            continue
+
+        min_offset = 0
+        max_offset = 0
+        min_value = float(bucket[0])
+        max_value = float(bucket[0])
+        for offset, raw_value in enumerate(bucket[1:], start=1):
+            value = float(raw_value)
+            if value < min_value:
+                min_value = value
+                min_offset = offset
+            if value > max_value:
+                max_value = value
+                max_offset = offset
+        for index in sorted({start + min_offset, start + max_offset}):
+            sampled_indices.append(index)
+
+    return (
+        [x_values[index] for index in sampled_indices],
+        [y_values[index] for index in sampled_indices],
+        True,
+    )

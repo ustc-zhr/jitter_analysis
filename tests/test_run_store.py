@@ -365,6 +365,117 @@ def test_fast_timed_snapshot_infers_target_order_from_batch_index_when_details_a
     assert snapshot.series_values["obj_b"] == [10.0, 20.0]
 
 
+def test_fast_timed_snapshot_can_load_requested_object_subset():
+    sample_dtype = np.dtype(
+        [
+            ("pv_id", "U32"),
+            ("value", np.float64),
+            ("timestamp", "U32"),
+            ("connected", np.bool_),
+            ("severity", np.int32),
+            ("status", np.int32),
+            ("step_index", np.int64),
+            ("batch_index", np.int64),
+        ]
+    )
+    handle = _FakeHandle(
+        {
+            "samples": np.array(
+                [
+                    ("obj_a", 1.0, "2026-05-20T10:00:00", True, 0, 0, -1, 0),
+                    ("obj_b", 10.0, "2026-05-20T10:00:00", True, 0, 0, -1, 0),
+                    ("obj_c", 100.0, "2026-05-20T10:00:00", True, 0, 0, -1, 0),
+                    ("obj_a", 2.0, "2026-05-20T10:00:01", True, 0, 0, -1, 1),
+                    ("obj_b", 20.0, "2026-05-20T10:00:01", True, 0, 0, -1, 1),
+                    ("obj_c", 200.0, "2026-05-20T10:00:01", True, 0, 0, -1, 1),
+                ],
+                dtype=sample_dtype,
+            )
+        },
+        attrs={},
+    )
+    metadata_payload = {
+        "metadata": {
+            "run_id": "subset_run",
+            "mode": "timed_acquisition",
+            "created_at": "2026-05-20T10:00:00",
+        }
+    }
+    summary_payload = {
+        "status": "completed",
+        "details": {"target_object_ids": ["obj_a", "obj_b", "obj_c"]},
+    }
+
+    snapshot = RunStore._load_timed_acquisition_series_fast_from_handle(
+        handle,
+        metadata_payload,
+        summary_payload,
+        minimum_record_count=1,
+        requested_object_ids=["obj_c"],
+    )
+
+    assert snapshot is not None
+    assert snapshot.ordered_object_ids == ["obj_a", "obj_b", "obj_c"]
+    assert snapshot.series_values == {"obj_c": [100.0, 200.0]}
+    assert snapshot.series_sample_indices == {"obj_c": [0, 1]}
+
+
+def test_fast_timed_snapshot_prefers_scalar_object_ids_over_mixed_targets():
+    sample_dtype = np.dtype(
+        [
+            ("pv_id", "U32"),
+            ("value", np.float64),
+            ("timestamp", "U32"),
+            ("connected", np.bool_),
+            ("severity", np.int32),
+            ("status", np.int32),
+            ("step_index", np.int64),
+            ("batch_index", np.int64),
+        ]
+    )
+    handle = _FakeHandle(
+        {
+            "samples": np.array(
+                [
+                    ("scalar_a", 1.0, "2026-05-20T10:00:00", True, 0, 0, -1, 0),
+                    ("scalar_b", 10.0, "2026-05-20T10:00:00", True, 0, 0, -1, 0),
+                    ("scalar_a", 2.0, "2026-05-20T10:00:01", True, 0, 0, -1, 1),
+                    ("scalar_b", 20.0, "2026-05-20T10:00:01", True, 0, 0, -1, 1),
+                ],
+                dtype=sample_dtype,
+            )
+        },
+        attrs={},
+    )
+    metadata_payload = {
+        "metadata": {
+            "run_id": "mixed_target_run",
+            "mode": "timed_acquisition",
+            "created_at": "2026-05-20T10:00:00",
+        }
+    }
+    summary_payload = {
+        "status": "completed",
+        "details": {
+            "target_object_ids": ["scalar_a", "waveform_a", "scalar_b"],
+            "scalar_object_ids": ["scalar_a", "scalar_b"],
+            "waveform_object_ids": ["waveform_a"],
+        },
+    }
+
+    snapshot = RunStore._load_timed_acquisition_series_fast_from_handle(
+        handle,
+        metadata_payload,
+        summary_payload,
+        minimum_record_count=1,
+    )
+
+    assert snapshot is not None
+    assert snapshot.ordered_object_ids == ["scalar_a", "scalar_b"]
+    assert snapshot.series_values["scalar_a"] == [1.0, 2.0]
+    assert snapshot.series_values["scalar_b"] == [10.0, 20.0]
+
+
 def test_fast_timed_snapshot_returns_none_when_target_order_does_not_match_samples():
     sample_dtype = np.dtype(
         [

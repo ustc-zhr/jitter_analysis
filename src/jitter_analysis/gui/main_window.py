@@ -204,9 +204,6 @@ def require_qt():
     return QtWidgets
 
 
-TIMED_RUN_FAST_PATH_MIN_RECORDS = 200_000
-
-
 if QtWidgets is not None:
     _MainWindowBase = QtWidgets.QMainWindow
 else:  # pragma: no cover - fallback for non-GUI tests
@@ -1187,7 +1184,7 @@ class MainWindow(_MainWindowBase):
         try:
             fast_snapshot = self.run_service.load_timed_acquisition_series_fast(
                 str(path),
-                minimum_record_count=TIMED_RUN_FAST_PATH_MIN_RECORDS,
+                minimum_record_count=1,
             )
         except Exception as exc:
             self.append_log(f"Timed saved-run fast path unavailable, falling back to standard load: {exc}")
@@ -3454,6 +3451,7 @@ class MainWindow(_MainWindowBase):
                 plot_rows,
                 current_pv_ids=current_pv_ids,
                 focused_pv_id=focused_pv_id,
+                sample_timestamps=self.current_run_sample_timestamps,
             )
         else:
             message = "No valid jitter samples are available."

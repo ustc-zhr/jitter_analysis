@@ -7,7 +7,11 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from jitter_analysis.gui.plots.visibility import resolve_initial_visibility, slice_series_tail
+from jitter_analysis.gui.plots.visibility import (
+    downsample_series_min_max,
+    resolve_initial_visibility,
+    slice_series_tail,
+)
 
 
 class _SliceOnlySequence:
@@ -107,3 +111,27 @@ def test_slice_series_tail_uses_direct_tail_slices_for_recent_window():
     assert y_values == [107, 108, 109]
     assert x_source.slice_requests == [slice(-3, None, None)]
     assert y_source.slice_requests == [slice(-3, None, None)]
+
+
+def test_downsample_series_min_max_preserves_bucket_extrema():
+    x_values, y_values, downsampled = downsample_series_min_max(
+        list(range(8)),
+        [0.0, 10.0, 1.0, 2.0, -5.0, 3.0, 4.0, 20.0],
+        max_points=4,
+    )
+
+    assert downsampled is True
+    assert x_values == [0, 1, 4, 7]
+    assert y_values == [0.0, 10.0, -5.0, 20.0]
+
+
+def test_downsample_series_min_max_returns_original_when_small_enough():
+    x_values, y_values, downsampled = downsample_series_min_max(
+        [0, 1, 2],
+        [1.0, 2.0, 3.0],
+        max_points=4,
+    )
+
+    assert downsampled is False
+    assert x_values == [0, 1, 2]
+    assert y_values == [1.0, 2.0, 3.0]

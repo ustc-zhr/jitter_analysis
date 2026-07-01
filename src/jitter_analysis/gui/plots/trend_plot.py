@@ -4,7 +4,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 import math
 
-from .visibility import resolve_initial_visibility, slice_series_tail
+from .visibility import downsample_series_min_max, resolve_initial_visibility, slice_series_tail
 
 try:
     from PyQt5 import QtWidgets
@@ -78,8 +78,9 @@ if QtWidgets is not None:
     else:
         TrendAxisItem = None
 
-    DEFAULT_VISIBLE_TREND_SERIES = 8
+    DEFAULT_VISIBLE_TREND_SERIES = 1
     DEFAULT_TREND_RECENT_POINTS = 2000
+    DEFAULT_TREND_DISPLAY_POINTS = 6000
 
     class TrendPlot(QtWidgets.QWidget):
         def __init__(self, parent=None) -> None:
@@ -97,6 +98,7 @@ if QtWidgets is not None:
             self._highlight_region = None
             self._highlight_range = None
             self._highlight_label = ""
+            self._last_downsampled = False
 
             controls = QtWidgets.QHBoxLayout()
             controls.addWidget(QtWidgets.QLabel("Show"))
@@ -222,11 +224,18 @@ if QtWidgets is not None:
             if str(self.range_combo.currentData() or "recent") != "full":
                 x_values, y_values = slice_series_tail(x_values, y_values, max_points=int(self.recent_points_spin.value()))
             if axis_mode != "sample_index":
-                return [self._axis_value_for_index(int(item), axis_mode=axis_mode) for item in x_values], y_values
+                x_values = [self._axis_value_for_index(int(item), axis_mode=axis_mode) for item in x_values]
+            x_values, y_values, downsampled = downsample_series_min_max(
+                x_values,
+                y_values,
+                max_points=DEFAULT_TREND_DISPLAY_POINTS,
+            )
+            self._last_downsampled = self._last_downsampled or downsampled
             return x_values, y_values
 
         def _refresh_visible_curve_data(self) -> None:
             self._update_axis_label()
+            self._last_downsampled = False
             for pv_id, curve in self._curves.items():
                 x_values, y_values = self._display_series_data(pv_id)
                 curve.setData(x_values, y_values)
@@ -294,8 +303,9 @@ if QtWidgets is not None:
                 range_text = f"latest {displayed_points}/{total_points} samples"
             else:
                 range_text = f"full history ({total_points} samples)"
+            downsample_text = " Display is min/max downsampled." if self._last_downsampled else ""
             self.info_label.setText(
-                f"Showing {visible_count}/{total_count} variables in trend. View: {range_text}."
+                f"Showing {visible_count}/{total_count} variables in trend. View: {range_text}.{downsample_text}"
             )
 
         def _rebuild_plot_items(self) -> None:
@@ -310,6 +320,7 @@ if QtWidgets is not None:
             self.plot_widget.setLabel("left", "Value")
             self._apply_title()
             self._highlight_region = None
+            self._last_downsampled = False
 
             for index, pv_id in enumerate(self._pv_order):
                 if not self._series_visibility.get(pv_id, False):
