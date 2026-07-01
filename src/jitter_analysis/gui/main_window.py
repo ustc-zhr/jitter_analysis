@@ -31,7 +31,6 @@ if __package__ in {None, ""}:
         SampleRecord,
         ScanStepRecord,
         TimedRunSeriesSnapshot,
-        WaveformIndexEntry,
         WaveformRecord,
     )
     from jitter_analysis.epics.client import PyEpicsClient, require_pyepics
@@ -71,6 +70,14 @@ if __package__ in {None, ""}:
     )
     from jitter_analysis.gui.setup_logic import list_saved_setups
     from jitter_analysis.gui.waveform_analysis import WaveformAnalysisWorker
+    from jitter_analysis.gui.waveform_logic import (
+        group_waveform_index_entries,
+        has_waveform_data,
+        waveform_counts_signature,
+        waveform_ids_in_current_run,
+        waveform_max_length_hint,
+        waveform_record_counts,
+    )
     from jitter_analysis.gui.plots.correlation_plot import CorrelationPlot
     from jitter_analysis.gui.plots.jitter_plot import JitterPlot
     from jitter_analysis.gui.plots.response_plot import ResponsePlot
@@ -102,7 +109,6 @@ else:
         SampleRecord,
         ScanStepRecord,
         TimedRunSeriesSnapshot,
-        WaveformIndexEntry,
         WaveformRecord,
     )
     from ..epics.client import PyEpicsClient, require_pyepics
@@ -142,6 +148,14 @@ else:
     )
     from .setup_logic import list_saved_setups
     from .waveform_analysis import WaveformAnalysisWorker
+    from .waveform_logic import (
+        group_waveform_index_entries,
+        has_waveform_data,
+        waveform_counts_signature,
+        waveform_ids_in_current_run,
+        waveform_max_length_hint,
+        waveform_record_counts,
+    )
     from .plots.correlation_plot import CorrelationPlot
     from .plots.jitter_plot import JitterPlot
     from .plots.response_plot import ResponsePlot
@@ -1921,9 +1935,7 @@ class MainWindow(_MainWindowBase):
         return any(len(values) > 0 for values in self.current_series_values.values())
 
     def _has_current_waveform_data(self) -> bool:
-        return any(self.current_waveform_records.get(pv_id) for pv_id in self.current_waveform_records) or any(
-            self.current_waveform_index.get(pv_id) for pv_id in self.current_waveform_index
-        )
+        return has_waveform_data(self.current_waveform_records, self.current_waveform_index)
 
     def _set_waveform_available(self, available: bool) -> None:
         self._has_waveform_data = bool(available)
@@ -1944,20 +1956,12 @@ class MainWindow(_MainWindowBase):
             )
 
     def _waveform_ids_in_current_run(self) -> list[str]:
-        explicit_ids = [
-            str(item).strip()
-            for item in self.current_run_details.get("waveform_object_ids", [])
-            if str(item).strip()
-        ]
-        if explicit_ids:
-            return explicit_ids
-        inferred_ids = list(dict.fromkeys(list(self.current_waveform_records) + list(self.current_waveform_index)))
-        if inferred_ids:
-            return inferred_ids
-        return [
-            obj.id
-            for obj in self._selected_waveform_objects()
-        ]
+        return waveform_ids_in_current_run(
+            self.current_run_details,
+            self.current_waveform_records,
+            self.current_waveform_index,
+            [obj.id for obj in self._selected_waveform_objects()],
+        )
 
     def _current_waveform_labels(self) -> dict[str, str]:
         return {
@@ -1966,29 +1970,22 @@ class MainWindow(_MainWindowBase):
         }
 
     def _current_waveform_record_counts(self) -> dict[str, int]:
-        counts: dict[str, int] = {}
-        for pv_id in self._waveform_ids_in_current_run():
-            if pv_id in self.current_waveform_records:
-                counts[pv_id] = len(self.current_waveform_records.get(pv_id, []))
-            else:
-                counts[pv_id] = len(self.current_waveform_index.get(pv_id, []))
-        return counts
+        return waveform_record_counts(
+            self._waveform_ids_in_current_run(),
+            self.current_waveform_records,
+            self.current_waveform_index,
+        )
 
     def _current_waveform_shot_count(self) -> int:
         counts = self._current_waveform_record_counts()
         return max(counts.values(), default=0)
 
     def _current_waveform_max_length_hint(self) -> int:
-        max_length = 0
-        for records in self.current_waveform_records.values():
-            for record in records:
-                max_length = max(max_length, len(record.values))
-        for entries in self.current_waveform_index.values():
-            for entry in entries:
-                max_length = max(max_length, int(entry.length))
-        if self._waveform_analysis_result:
-            max_length = max(max_length, int(self._waveform_analysis_result.get("max_waveform_length", 0)))
-        return max_length
+        return waveform_max_length_hint(
+            self.current_waveform_records,
+            self.current_waveform_index,
+            self._waveform_analysis_result,
+        )
 
     def _load_saved_run_waveform_state(self, path: Path) -> None:
         self.current_waveform_run_path = Path(path)
@@ -2001,9 +1998,7 @@ class MainWindow(_MainWindowBase):
             self._set_waveform_available(False)
             return
 
-        grouped: dict[str, list[WaveformIndexEntry]] = {}
-        for entry in entries:
-            grouped.setdefault(entry.pv_id, []).append(entry)
+        grouped = group_waveform_index_entries(entries)
         self.current_waveform_index = grouped
         if grouped:
             waveform_ids = list(dict.fromkeys(grouped))
@@ -2029,32 +2024,17 @@ class MainWindow(_MainWindowBase):
         return None
 
     def _current_waveform_analysis_signature_for_view(self) -> tuple[object, ...]:
-        counts_signature = []
-        for pv_id in self._waveform_ids_in_current_run():
-            if pv_id in self.current_waveform_records and self.current_waveform_records.get(pv_id):
-                tail_record = self.current_waveform_records[pv_id][-1]
-                counts_signature.append(
-                    (
-                        pv_id,
-                        len(self.current_waveform_records[pv_id]),
-                        int(tail_record.batch_index) if tail_record.batch_index is not None else -1,
-                    )
-                )
-            else:
-                entries = self.current_waveform_index.get(pv_id, [])
-                tail_entry = entries[-1] if entries else None
-                counts_signature.append(
-                    (
-                        pv_id,
-                        len(entries),
-                        int(tail_entry.batch_index) if tail_entry is not None and tail_entry.batch_index is not None else -1,
-                    )
-                )
+        waveform_ids = self._waveform_ids_in_current_run()
+        counts_signature = waveform_counts_signature(
+            waveform_ids,
+            self.current_waveform_records,
+            self.current_waveform_index,
+        )
         primary = self.waveform_plot.selected_primary_pv_id()
         secondary = self.waveform_plot.selected_secondary_pv_id()
         roi_start, roi_stop = self.waveform_plot.roi_bounds()
         return (
-            tuple(self._waveform_ids_in_current_run()),
+            tuple(waveform_ids),
             tuple(counts_signature),
             roi_start,
             roi_stop,
