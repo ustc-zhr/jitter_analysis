@@ -12,6 +12,7 @@ if str(SRC) not in sys.path:
 
 from jitter_analysis.domain.types import RunMode, RunStatus, ScanStepRecord
 from jitter_analysis.gui.view_logic import (
+    connection_summary,
     estimate_series_sample_interval,
     estimate_series_sample_interval_from_sample_indices,
     mode_display_name,
@@ -40,6 +41,13 @@ def test_mode_and_tone_helpers():
     assert progress_tone(10, 10) == "success"
     assert run_status_tone(RunStatus.COMPLETED) == "success"
     assert run_status_tone(RunStatus.FAILED) == "danger"
+
+
+def test_connection_summary_labels_and_tones():
+    assert connection_summary(0, 0) == ("Not checked", "subtle")
+    assert connection_summary(3, 3) == ("Connected (3/3 connected)", "success")
+    assert connection_summary(0, 3) == ("0/3 connected", "danger")
+    assert connection_summary(2, 3) == ("2/3 connected", "warning")
 
 
 def test_mode_ready_state_handles_global_blockers():

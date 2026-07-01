@@ -40,6 +40,7 @@ if __package__ in {None, ""}:
     from jitter_analysis.gui.dialogs.setup_browser_dialog import SetupBrowserDialog
     from jitter_analysis.gui.config_snapshot import config_snapshot_text
     from jitter_analysis.gui.view_logic import (
+        connection_summary,
         estimate_series_sample_interval,
         estimate_series_sample_interval_from_sample_indices,
         mode_display_name,
@@ -123,6 +124,7 @@ else:
     from .dialogs.setup_browser_dialog import SetupBrowserDialog
     from .config_snapshot import config_snapshot_text
     from .view_logic import (
+        connection_summary,
         estimate_series_sample_interval,
         estimate_series_sample_interval_from_sample_indices,
         mode_display_name,
@@ -2482,17 +2484,7 @@ class MainWindow(_MainWindowBase):
         return run_status_tone(status)
 
     def _set_connection_summary(self, connected: int, total: int) -> None:
-        if total <= 0:
-            self.status_panel.set_connection("Not checked", tone="subtle")
-            return
-        label = f"{connected}/{total} connected"
-        if connected == total:
-            label = f"Connected ({label})"
-            tone = "success"
-        elif connected <= 0:
-            tone = "danger"
-        else:
-            tone = "warning"
+        label, tone = connection_summary(connected, total)
         self.status_panel.set_connection(label, tone=tone)
 
     def _ensure_epics_runtime(self) -> bool:

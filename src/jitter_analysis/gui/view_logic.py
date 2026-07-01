@@ -57,6 +57,17 @@ def run_status_tone(status: RunStatus) -> str:
     return "subtle"
 
 
+def connection_summary(connected: int, total: int) -> tuple[str, str]:
+    if total <= 0:
+        return "Not checked", "subtle"
+    label = f"{connected}/{total} connected"
+    if connected == total:
+        return f"Connected ({label})", "success"
+    if connected <= 0:
+        return label, "danger"
+    return label, "warning"
+
+
 def mode_ready_state(
     mode: str,
     *,
