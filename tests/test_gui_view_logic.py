@@ -14,6 +14,8 @@ from jitter_analysis.domain.types import RunMode, RunStatus, ScanStepRecord
 from jitter_analysis.gui.view_logic import (
     estimate_series_sample_interval,
     estimate_series_sample_interval_from_sample_indices,
+    mode_display_name,
+    mode_help_text,
     mode_ready_state,
     mode_key_from_run_mode,
     progress_tone,
@@ -27,6 +29,12 @@ from jitter_analysis.gui.view_logic import (
 def test_mode_and_tone_helpers():
     assert mode_key_from_run_mode(RunMode.KNOB_SCAN) == "single_knob_scan"
     assert mode_key_from_run_mode(None) == "timed_acquisition"
+    assert mode_display_name("timed_acquisition") == "Monitor"
+    assert mode_display_name("single_knob_scan") == "Single Knob"
+    assert mode_display_name("unknown_mode") == "Unknown Mode"
+    assert mode_display_name(None) == "Idle"
+    assert "fixed interval" in mode_help_text("timed_acquisition")
+    assert mode_help_text("unknown_mode") == ""
     assert progress_tone(0, 10) == "subtle"
     assert progress_tone(5, 10) == "info"
     assert progress_tone(10, 10) == "success"

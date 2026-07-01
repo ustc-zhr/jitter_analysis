@@ -15,6 +15,28 @@ def mode_key_from_run_mode(mode: RunMode | None) -> str:
     return mapping.get(mode, "timed_acquisition")
 
 
+def mode_display_name(mode: str | None) -> str:
+    labels = {
+        "timed_acquisition": "Monitor",
+        "single_knob_scan": "Single Knob",
+        "multi_knob_random": "Random Multi-Knob",
+    }
+    return labels.get(mode, mode.replace("_", " ").title() if mode else "Idle")
+
+
+def mode_help_text(mode: str) -> str:
+    messages = {
+        "timed_acquisition": "Monitor samples the selected read PVs at a fixed interval.",
+        "single_knob_scan": (
+            "Single Knob changes one active control PV while all other selected control PVs stay fixed."
+        ),
+        "multi_knob_random": (
+            "Random Multi-Knob changes all enabled control PVs together at each random point."
+        ),
+    }
+    return messages.get(mode, "")
+
+
 def progress_tone(completed: int, total: int) -> str:
     if total <= 0 or completed <= 0:
         return "subtle"

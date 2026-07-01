@@ -42,6 +42,8 @@ if __package__ in {None, ""}:
     from jitter_analysis.gui.view_logic import (
         estimate_series_sample_interval,
         estimate_series_sample_interval_from_sample_indices,
+        mode_display_name,
+        mode_help_text,
         mode_ready_state,
         mode_key_from_run_mode,
         progress_tone,
@@ -123,6 +125,8 @@ else:
     from .view_logic import (
         estimate_series_sample_interval,
         estimate_series_sample_interval_from_sample_indices,
+        mode_display_name,
+        mode_help_text,
         mode_ready_state,
         mode_key_from_run_mode,
         progress_tone,
@@ -1757,25 +1761,10 @@ class MainWindow(_MainWindowBase):
         self.scan_panel.set_preview_values(values, summary=summary, detail=detail)
 
     def _mode_display_name(self, mode: str | None = None) -> str:
-        value = mode or self.scan_panel.task_mode()
-        labels = {
-            "timed_acquisition": "Monitor",
-            "single_knob_scan": "Single Knob",
-            "multi_knob_random": "Random Multi-Knob",
-        }
-        return labels.get(value, value.replace("_", " ").title() if value else "Idle")
+        return mode_display_name(mode or self.scan_panel.task_mode())
 
     def _mode_help_text(self, mode: str) -> str:
-        messages = {
-            "timed_acquisition": "Monitor samples the selected read PVs at a fixed interval.",
-            "single_knob_scan": (
-                "Single Knob changes one active control PV while all other selected control PVs stay fixed."
-            ),
-            "multi_knob_random": (
-                "Random Multi-Knob changes all enabled control PVs together at each random point."
-            ),
-        }
-        return messages.get(mode, "")
+        return mode_help_text(mode)
 
     def _selection_key(self) -> tuple[tuple[str, ...], tuple[str, ...]]:
         return (tuple(self.state.selected_knob_ids), tuple(self.state.selected_object_ids))
