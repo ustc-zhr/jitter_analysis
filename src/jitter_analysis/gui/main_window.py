@@ -58,6 +58,7 @@ if __package__ in {None, ""}:
         parse_manual_scan_values,
         resolve_random_seed,
     )
+    from jitter_analysis.gui.run_logic import run_browser_scope_kind, validate_loaded_run_config
     from jitter_analysis.gui.setup_logic import list_saved_setups
     from jitter_analysis.gui.waveform_analysis import WaveformAnalysisWorker
     from jitter_analysis.gui.plots.correlation_plot import CorrelationPlot
@@ -118,6 +119,7 @@ else:
         parse_manual_scan_values,
         resolve_random_seed,
     )
+    from .run_logic import run_browser_scope_kind, validate_loaded_run_config
     from .setup_logic import list_saved_setups
     from .waveform_analysis import WaveformAnalysisWorker
     from .plots.correlation_plot import CorrelationPlot
@@ -1124,19 +1126,10 @@ class MainWindow(_MainWindowBase):
         dialog.set_root_dir(path)
         self._populate_run_browser(dialog)
 
-    @staticmethod
-    def _run_browser_scope_kind(root_dir: str | Path) -> str:
-        root_path = Path(root_dir)
-        if not root_path.exists():
-            return "root"
-        if any((root_path / filename).exists() for filename in ("raw.h5", "metadata.json", "result.json")):
-            return "single_run"
-        return "root"
-
     def _populate_run_browser(self, dialog: RunBrowserDialog) -> None:
         root_dir = dialog.root_dir() or str(self._default_runs_dir())
         dialog.set_root_dir(root_dir)
-        scope_kind = self._run_browser_scope_kind(root_dir)
+        scope_kind = run_browser_scope_kind(root_dir)
         try:
             entries = self.run_service.list_runs(root_dir)
         except Exception as exc:
@@ -1214,7 +1207,7 @@ class MainWindow(_MainWindowBase):
         preferred_config_path = self.run_service.preferred_config_path(str(run_path), recorded_config_path)
         using_snapshot = preferred_config_path.endswith("config_snapshot.json")
         if not using_snapshot and self.loaded_config is not None:
-            already_matches, _message = self._validate_loaded_run_config(result)
+            already_matches, _message = validate_loaded_run_config(result, self.loaded_config)
             if already_matches:
                 return True
         if preferred_config_path:
@@ -1243,54 +1236,12 @@ class MainWindow(_MainWindowBase):
             )
             return False
 
-        ok, message = self._validate_loaded_run_config(result)
+        ok, message = validate_loaded_run_config(result, self.loaded_config)
         if not ok:
             QtWidgets.QMessageBox.critical(self, "Open Saved Run", message)
             self.append_log(f"Offline run load failed: {message}")
             return False
         return True
-
-    def _validate_loaded_run_config(self, result: RunResult) -> tuple[bool, str]:
-        if self.loaded_config is None:
-            return False, "No PV library is loaded."
-
-        expected_object_ids = [
-            str(item).strip()
-            for item in result.details.get("target_object_ids", [])
-            if str(item).strip()
-        ]
-        available_object_ids = {obj.id for obj in self.loaded_config.objects}
-        missing_object_ids = [object_id for object_id in expected_object_ids if object_id not in available_object_ids]
-
-        expected_knob_ids: list[str] = []
-        if result.metadata.mode == RunMode.KNOB_SCAN:
-            knob_id = str(result.details.get("knob_id", "")).strip()
-            if knob_id:
-                expected_knob_ids = [knob_id]
-        elif result.metadata.mode == RunMode.MULTI_KNOB_RANDOM:
-            knob_ranges = result.details.get("knob_ranges", [])
-            expected_knob_ids = [
-                str(item.get("knob_id", "")).strip()
-                for item in knob_ranges
-                if isinstance(item, dict) and str(item.get("knob_id", "")).strip()
-            ]
-
-        available_knob_ids = {knob.id for knob in self.loaded_config.knobs}
-        missing_knob_ids = [knob_id for knob_id in expected_knob_ids if knob_id not in available_knob_ids]
-
-        if not missing_object_ids and not missing_knob_ids:
-            return True, ""
-
-        missing_parts = []
-        if missing_object_ids:
-            missing_parts.append("read PV IDs: " + ", ".join(missing_object_ids[:8]))
-        if missing_knob_ids:
-            missing_parts.append("control PV IDs: " + ", ".join(missing_knob_ids[:8]))
-        return (
-            False,
-            "The loaded PV library does not match this saved run.\nMissing "
-            + " | ".join(missing_parts),
-        )
 
     def _apply_loaded_run_result(self, result: RunResult, path: Path) -> None:
         self.current_run_metadata = result.metadata
