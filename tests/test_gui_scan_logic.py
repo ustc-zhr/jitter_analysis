@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 import sys
 
@@ -11,16 +11,68 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from jitter_analysis.gui.scan_logic import (
+    collect_random_knob_ranges,
     generate_random_targets,
     generate_values_by_points,
     generate_values_by_step,
     parse_manual_scan_values,
+    resolve_random_seed,
 )
+
+
+@dataclass
+class _Limits:
+    low: float = -1.0
+    high: float = 1.0
 
 
 @dataclass
 class _Knob:
     id: str
+    name: str = "K1"
+    limits: _Limits = field(default_factory=_Limits)
+
+
+def test_resolve_random_seed_uses_default_for_empty_text():
+    assert resolve_random_seed("", 123) == (123, True)
+    assert resolve_random_seed("  ", 123) == (123, True)
+
+
+def test_resolve_random_seed_parses_explicit_integer():
+    assert resolve_random_seed("42", 123) == (42, False)
+
+
+def test_resolve_random_seed_rejects_non_integer_text():
+    with pytest.raises(ValueError, match="Seed must be an integer"):
+        resolve_random_seed("4.2", 123)
+
+
+def test_collect_random_knob_ranges_returns_enabled_selected_rows_as_floats():
+    knob = _Knob("k1", "K1", _Limits(-2.0, 2.0))
+    rows = {
+        "k1": {"enabled": True, "low_text": "-0.5", "high_text": "0.75"},
+        "k2": {"enabled": True, "low_text": "-1.0", "high_text": "1.0"},
+        "k3": {"enabled": False, "low_text": "", "high_text": ""},
+    }
+
+    assert collect_random_knob_ranges([knob], rows) == [
+        {"knob": knob, "low": -0.5, "high": 0.75}
+    ]
+
+
+def test_collect_random_knob_ranges_rejects_invalid_rows():
+    knob = _Knob("k1", "K1", _Limits(-1.0, 1.0))
+
+    with pytest.raises(ValueError, match="Low/High must be set for K1"):
+        collect_random_knob_ranges([knob], {"k1": {"enabled": True, "low_text": "", "high_text": "1"}})
+    with pytest.raises(ValueError, match="Low/High must be numeric for K1"):
+        collect_random_knob_ranges([knob], {"k1": {"enabled": True, "low_text": "bad", "high_text": "1"}})
+    with pytest.raises(ValueError, match="Low must be <= High for K1"):
+        collect_random_knob_ranges([knob], {"k1": {"enabled": True, "low_text": "1", "high_text": "0"}})
+    with pytest.raises(ValueError, match="must stay within"):
+        collect_random_knob_ranges([knob], {"k1": {"enabled": True, "low_text": "-2", "high_text": "0"}})
+    with pytest.raises(ValueError, match="Enable at least one knob row"):
+        collect_random_knob_ranges([knob], {"k1": {"enabled": False, "low_text": "-1", "high_text": "1"}})
 
 
 def test_parse_manual_scan_values_accepts_commas_semicolons_and_newlines():

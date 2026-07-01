@@ -51,10 +51,12 @@ if __package__ in {None, ""}:
         single_knob_step_axis_value,
     )
     from jitter_analysis.gui.scan_logic import (
+        collect_random_knob_ranges,
         generate_random_targets,
         generate_values_by_points,
         generate_values_by_step,
         parse_manual_scan_values,
+        resolve_random_seed,
     )
     from jitter_analysis.gui.waveform_analysis import WaveformAnalysisWorker
     from jitter_analysis.gui.plots.correlation_plot import CorrelationPlot
@@ -108,10 +110,12 @@ else:
         single_knob_step_axis_value,
     )
     from .scan_logic import (
+        collect_random_knob_ranges,
         generate_random_targets,
         generate_values_by_points,
         generate_values_by_step,
         parse_manual_scan_values,
+        resolve_random_seed,
     )
     from .waveform_analysis import WaveformAnalysisWorker
     from .plots.correlation_plot import CorrelationPlot
@@ -2677,51 +2681,19 @@ class MainWindow(_MainWindowBase):
         self._analysis_tab_loaded[tab_index] = True
 
     def _ensure_random_seed(self, seed_text: str) -> int:
-        text = seed_text.strip()
-        if not text:
-            seed = int(QtCore.QDateTime.currentMSecsSinceEpoch())
+        seed, generated = resolve_random_seed(
+            seed_text,
+            int(QtCore.QDateTime.currentMSecsSinceEpoch()),
+        )
+        if generated:
             self.scan_panel.set_random_seed(seed)
-            return seed
-        try:
-            return int(text)
-        except ValueError as exc:
-            raise ValueError("Seed must be an integer.") from exc
+        return seed
 
     def _collect_random_knob_ranges(self):
-        selected_knobs = {knob.id: knob for knob in self._selected_knobs()}
-        rows = self.scan_panel.random_knob_state()
-        knob_ranges = []
-        for knob_id, row in rows.items():
-            if not bool(row.get("enabled", True)):
-                continue
-            knob = selected_knobs.get(knob_id)
-            if knob is None:
-                continue
-            low_text = str(row.get("low_text", "")).strip()
-            high_text = str(row.get("high_text", "")).strip()
-            if not low_text or not high_text:
-                raise ValueError(f"Low/High must be set for {knob.name}.")
-            try:
-                low = float(low_text)
-                high = float(high_text)
-            except ValueError as exc:
-                raise ValueError(f"Low/High must be numeric for {knob.name}.") from exc
-            if low > high:
-                raise ValueError(f"Low must be <= High for {knob.name}.")
-            if low < float(knob.limits.low) or high > float(knob.limits.high):
-                raise ValueError(
-                    f"Random range for {knob.name} must stay within [{knob.limits.low}, {knob.limits.high}]."
-                )
-            knob_ranges.append(
-                {
-                    "knob": knob,
-                    "low": low,
-                    "high": high,
-                }
-            )
-        if not knob_ranges:
-            raise ValueError("Enable at least one knob row for multi-knob random sampling.")
-        return knob_ranges
+        return collect_random_knob_ranges(
+            self._selected_knobs(),
+            self.scan_panel.random_knob_state(),
+        )
 
     @staticmethod
     def _generate_random_targets(knob_ranges, distribution: str, num_points: int, seed: int):

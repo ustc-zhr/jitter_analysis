@@ -3,6 +3,52 @@ from __future__ import annotations
 import random
 
 
+def resolve_random_seed(seed_text: str, default_seed: int) -> tuple[int, bool]:
+    text = str(seed_text).strip()
+    if not text:
+        return int(default_seed), True
+    try:
+        return int(text), False
+    except ValueError as exc:
+        raise ValueError("Seed must be an integer.") from exc
+
+
+def collect_random_knob_ranges(selected_knobs, rows):
+    selected_by_id = {knob.id: knob for knob in selected_knobs}
+    knob_ranges = []
+    for knob_id, row in rows.items():
+        if not bool(row.get("enabled", True)):
+            continue
+        knob = selected_by_id.get(knob_id)
+        if knob is None:
+            continue
+        low_text = str(row.get("low_text", "")).strip()
+        high_text = str(row.get("high_text", "")).strip()
+        if not low_text or not high_text:
+            raise ValueError(f"Low/High must be set for {knob.name}.")
+        try:
+            low = float(low_text)
+            high = float(high_text)
+        except ValueError as exc:
+            raise ValueError(f"Low/High must be numeric for {knob.name}.") from exc
+        if low > high:
+            raise ValueError(f"Low must be <= High for {knob.name}.")
+        if low < float(knob.limits.low) or high > float(knob.limits.high):
+            raise ValueError(
+                f"Random range for {knob.name} must stay within [{knob.limits.low}, {knob.limits.high}]."
+            )
+        knob_ranges.append(
+            {
+                "knob": knob,
+                "low": low,
+                "high": high,
+            }
+        )
+    if not knob_ranges:
+        raise ValueError("Enable at least one knob row for multi-knob random sampling.")
+    return knob_ranges
+
+
 def parse_manual_scan_values(text: str) -> list[float]:
     raw_tokens = []
     for chunk in text.replace("\n", ",").replace(";", ",").split(","):
