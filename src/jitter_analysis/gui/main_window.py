@@ -41,6 +41,16 @@ if __package__ in {None, ""}:
     from jitter_analysis.gui.dialogs.run_browser_dialog import RunBrowserDialog
     from jitter_analysis.gui.dialogs.setup_browser_dialog import SetupBrowserDialog
     from jitter_analysis.gui.config_snapshot import config_snapshot_text
+    from jitter_analysis.gui.view_logic import (
+        estimate_series_sample_interval,
+        estimate_series_sample_interval_from_sample_indices,
+        mode_key_from_run_mode,
+        progress_tone,
+        run_status_tone,
+        single_knob_axis_name,
+        single_knob_axis_summary_text,
+        single_knob_step_axis_value,
+    )
     from jitter_analysis.gui.waveform_analysis import WaveformAnalysisWorker
     from jitter_analysis.gui.plots.correlation_plot import CorrelationPlot
     from jitter_analysis.gui.plots.jitter_plot import JitterPlot
@@ -82,6 +92,16 @@ else:
     from .dialogs.run_browser_dialog import RunBrowserDialog
     from .dialogs.setup_browser_dialog import SetupBrowserDialog
     from .config_snapshot import config_snapshot_text
+    from .view_logic import (
+        estimate_series_sample_interval,
+        estimate_series_sample_interval_from_sample_indices,
+        mode_key_from_run_mode,
+        progress_tone,
+        run_status_tone,
+        single_knob_axis_name,
+        single_knob_axis_summary_text,
+        single_knob_step_axis_value,
+    )
     from .waveform_analysis import WaveformAnalysisWorker
     from .plots.correlation_plot import CorrelationPlot
     from .plots.jitter_plot import JitterPlot
@@ -1520,12 +1540,7 @@ class MainWindow(_MainWindowBase):
 
     @staticmethod
     def _mode_key_from_run_mode(mode: RunMode | None) -> str:
-        mapping = {
-            RunMode.TIMED_ACQUISITION: "timed_acquisition",
-            RunMode.KNOB_SCAN: "single_knob_scan",
-            RunMode.MULTI_KNOB_RANDOM: "multi_knob_random",
-        }
-        return mapping.get(mode, "timed_acquisition")
+        return mode_key_from_run_mode(mode)
 
     def _apply_loaded_config(self) -> None:
         if self.loaded_config is None:
@@ -2457,20 +2472,13 @@ class MainWindow(_MainWindowBase):
         return fallback_mode
 
     def _single_knob_axis_name(self, knob_name: str = "") -> str:
-        base_name = knob_name.strip() or "Knob Value"
-        if self._single_knob_axis_source == "target":
-            return f"{base_name} Target"
-        return f"{base_name} Readback"
+        return single_knob_axis_name(self._single_knob_axis_source, knob_name)
 
     def _single_knob_axis_summary_text(self) -> str:
-        if self._single_knob_axis_source == "target":
-            return "Sensitivity uses target knob values on the x-axis."
-        return "Sensitivity uses knob readback on the x-axis, with target fallback if readback is unavailable."
+        return single_knob_axis_summary_text(self._single_knob_axis_source)
 
     def _single_knob_step_axis_value(self, step: ScanStepRecord) -> float | None:
-        if self._single_knob_axis_source == "target":
-            return step.target_value
-        return step.readback_value if step.readback_value is not None else step.target_value
+        return single_knob_step_axis_value(self._single_knob_axis_source, step)
 
     def _refresh_single_knob_response_plot(self) -> None:
         if self.loaded_config is None:
@@ -2746,23 +2754,11 @@ class MainWindow(_MainWindowBase):
 
     @staticmethod
     def _progress_tone(completed: int, total: int) -> str:
-        if total <= 0 or completed <= 0:
-            return "subtle"
-        if completed >= total:
-            return "success"
-        return "info"
+        return progress_tone(completed, total)
 
     @staticmethod
     def _run_status_tone(status: RunStatus) -> str:
-        if status == RunStatus.COMPLETED:
-            return "success"
-        if status == RunStatus.STOPPED:
-            return "warning"
-        if status == RunStatus.FAILED:
-            return "danger"
-        if status == RunStatus.RUNNING:
-            return "info"
-        return "subtle"
+        return run_status_tone(status)
 
     def _set_connection_summary(self, connected: int, total: int) -> None:
         if total <= 0:
@@ -4034,32 +4030,13 @@ class MainWindow(_MainWindowBase):
 
     @staticmethod
     def _estimate_series_sample_interval(timestamps) -> float:
-        if len(timestamps) < 2:
-            raise ValueError("At least two timestamps are required.")
-        deltas = []
-        for left, right in zip(timestamps, timestamps[1:]):
-            delta = (right - left).total_seconds()
-            if delta > 0.0:
-                deltas.append(delta)
-        if not deltas:
-            raise ValueError("No positive timestamp deltas are available.")
-        deltas.sort()
-        mid = len(deltas) // 2
-        if len(deltas) % 2 == 1:
-            return float(deltas[mid])
-        return float((deltas[mid - 1] + deltas[mid]) / 2.0)
+        return estimate_series_sample_interval(timestamps)
 
     def _estimate_series_sample_interval_from_sample_indices(self, sample_indices) -> float:
-        timestamps = []
-        for sample_index in sample_indices:
-            if sample_index is None:
-                continue
-            index = int(sample_index)
-            if 0 <= index < len(self.current_run_sample_timestamps):
-                timestamp = self.current_run_sample_timestamps[index]
-                if timestamp is not None:
-                    timestamps.append(timestamp)
-        return self._estimate_series_sample_interval(timestamps)
+        return estimate_series_sample_interval_from_sample_indices(
+            sample_indices,
+            self.current_run_sample_timestamps,
+        )
 
     def _highlight_correlation_point(self, payload) -> None:
         if not isinstance(payload, dict):
