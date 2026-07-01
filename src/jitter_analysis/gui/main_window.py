@@ -61,6 +61,7 @@ if __package__ in {None, ""}:
         parse_manual_scan_values,
         random_preview_payload,
         resolve_random_seed,
+        single_knob_preview_payload,
     )
     from jitter_analysis.gui.series_logic import (
         filtered_series_payload,
@@ -148,6 +149,7 @@ else:
         parse_manual_scan_values,
         random_preview_payload,
         resolve_random_seed,
+        single_knob_preview_payload,
     )
     from .series_logic import (
         filtered_series_payload,
@@ -1740,23 +1742,25 @@ class MainWindow(_MainWindowBase):
             return
 
         mode = self.scan_panel.scan_value_mode()
-        summary = (
-            f"{len(values)} point(s) for {active_knob.name}: "
-            f"{min(values):.6g} to {max(values):.6g} {active_knob.unit}"
-        )
-        if len(values) >= 2:
-            first_step = values[1] - values[0]
-            summary += f"  |  first step {first_step:.6g}"
-
-        detail = ""
+        center = None
         if mode == "symmetric_points":
             try:
                 center = self._read_knob_center_value(active_knob, preview_only=not force_live_center)
-                detail = f"Preview center from {active_knob.name}: {center:.6g} {active_knob.unit}"
             except ValueError:
-                detail = ""
+                center = None
 
-        self.scan_panel.set_preview_values(values, summary=summary, detail=detail)
+        preview = single_knob_preview_payload(
+            values,
+            active_knob.name,
+            active_knob.unit,
+            mode,
+            center=center,
+        )
+        self.scan_panel.set_preview_values(
+            values,
+            summary=preview["summary"],
+            detail=preview["detail"],
+        )
 
     def _mode_display_name(self, mode: str | None = None) -> str:
         return mode_display_name(mode or self.scan_panel.task_mode())

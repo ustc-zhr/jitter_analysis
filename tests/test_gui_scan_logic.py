@@ -18,6 +18,7 @@ from jitter_analysis.gui.scan_logic import (
     parse_manual_scan_values,
     random_preview_payload,
     resolve_random_seed,
+    single_knob_preview_payload,
 )
 
 
@@ -146,3 +147,43 @@ def test_random_preview_payload_formats_preview_lines_summary_and_detail():
     ]
     assert payload["summary"] == "3 random point(s) across 2 knob(s)  |  distribution=uniform  |  seed=42"
     assert payload["detail"] == "K1[-1, 1], K2[2, 3]"
+
+
+def test_single_knob_preview_payload_formats_summary_and_optional_center_detail():
+    payload = single_knob_preview_payload(
+        [-0.2, 0.0, 0.2],
+        "K1",
+        "mm",
+        "manual",
+    )
+
+    assert payload == {
+        "summary": "3 point(s) for K1: -0.2 to 0.2 mm  |  first step 0.2",
+        "detail": "",
+    }
+
+    symmetric_payload = single_knob_preview_payload(
+        [-0.1, 0.0, 0.1],
+        "K1",
+        "mm",
+        "symmetric_points",
+        center=1.234567,
+    )
+
+    assert symmetric_payload == {
+        "summary": "3 point(s) for K1: -0.1 to 0.1 mm  |  first step 0.1",
+        "detail": "Preview center from K1: 1.23457 mm",
+    }
+
+    missing_center_payload = single_knob_preview_payload(
+        [0.0],
+        "K1",
+        "mm",
+        "symmetric_points",
+        center=None,
+    )
+
+    assert missing_center_payload == {
+        "summary": "1 point(s) for K1: 0 to 0 mm",
+        "detail": "",
+    }

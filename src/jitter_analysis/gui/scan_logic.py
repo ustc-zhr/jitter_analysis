@@ -147,3 +147,22 @@ def random_preview_payload(knob_ranges, target_steps, distribution: str, seed: i
         "summary": summary,
         "detail": detail,
     }
+
+
+def single_knob_preview_payload(values, knob_name: str, unit: str, mode: str, center=None) -> dict[str, str]:
+    summary = (
+        f"{len(values)} point(s) for {knob_name}: "
+        f"{min(values):.6g} to {max(values):.6g} {unit}"
+    )
+    if len(values) >= 2:
+        first_step = values[1] - values[0]
+        summary += f"  |  first step {first_step:.6g}"
+
+    detail = ""
+    if mode == "symmetric_points" and center is not None:
+        detail = f"Preview center from {knob_name}: {float(center):.6g} {unit}"
+
+    return {
+        "summary": summary,
+        "detail": detail,
+    }
