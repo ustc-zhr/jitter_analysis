@@ -25,11 +25,13 @@ from .validator import validate_config_dict
 
 def load_config(path: str | Path, *, allow_legacy_field_names: bool = False) -> PvListConfig:
     source = Path(path)
-    data = json.loads(source.read_text(encoding="utf-8"))
+    source_text = source.read_text(encoding="utf-8")
+    data = json.loads(source_text)
     if allow_legacy_field_names:
         data = _normalize_legacy_field_names(data)
+        source_text = json.dumps(data, indent=2)
     validated = validate_config_dict(data)
-    return _build_config(validated, source)
+    return _build_config(validated, source, source_text=source_text)
 
 
 def _normalize_legacy_field_names(data: dict) -> dict:
@@ -57,7 +59,7 @@ def _normalize_legacy_field_names(data: dict) -> dict:
     return payload
 
 
-def _build_config(data: dict, source: Path) -> PvListConfig:
+def _build_config(data: dict, source: Path, *, source_text: str) -> PvListConfig:
     machine = MachineSpec(**data["machine"])
 
     defaults = DefaultsSpec(
@@ -133,6 +135,7 @@ def _build_config(data: dict, source: Path) -> PvListConfig:
         objects=objects,
         presets=presets,
         source_path=str(source.resolve()),
+        source_text=source_text,
     )
 
 

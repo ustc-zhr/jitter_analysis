@@ -187,6 +187,47 @@ def test_load_samples_reads_batch_index_when_present():
     assert samples[0].batch_index == 7
 
 
+def test_load_samples_reads_hdf5_rows_in_chunks(monkeypatch):
+    sample_dtype = np.dtype(
+        [
+            ("pv_id", "U32"),
+            ("value", np.float64),
+            ("timestamp", "U32"),
+            ("connected", np.bool_),
+            ("severity", np.int32),
+            ("status", np.int32),
+            ("step_index", np.int64),
+            ("batch_index", np.int64),
+        ]
+    )
+
+    class _ChunkedDataset:
+        def __init__(self):
+            self.rows = np.array(
+                [
+                    ("a", 1.0, "2026-05-13T09:30:00", True, 0, 0, -1, 0),
+                    ("b", 2.0, "2026-05-13T09:30:01", True, 0, 0, -1, 1),
+                    ("c", 3.0, "2026-05-13T09:30:02", True, 0, 0, -1, 2),
+                ],
+                dtype=sample_dtype,
+            )
+            self.dtype = self.rows.dtype
+            self.shape = self.rows.shape
+            self.requests = []
+
+        def __getitem__(self, item):
+            self.requests.append(item)
+            return self.rows[item]
+
+    dataset = _ChunkedDataset()
+    monkeypatch.setattr(RunStore, "SAMPLE_LOAD_CHUNK_SIZE", 2)
+
+    samples = RunStore._load_samples({"samples": dataset})
+
+    assert [sample.pv_id for sample in samples] == ["a", "b", "c"]
+    assert dataset.requests == [slice(0, 2, None), slice(2, 3, None)]
+
+
 def test_load_samples_keeps_legacy_runs_without_batch_index_compatible():
     sample_dtype = np.dtype(
         [
@@ -274,6 +315,54 @@ def test_fast_timed_snapshot_groups_samples_without_building_sample_records():
     assert snapshot.series_sample_indices["obj_a"] == [0, 1, 2]
     assert len(snapshot.sample_timestamps) == 3
     assert snapshot.used_legacy_batch_reconstruction is False
+
+
+def test_fast_timed_snapshot_infers_target_order_from_batch_index_when_details_are_missing():
+    sample_dtype = np.dtype(
+        [
+            ("pv_id", "U32"),
+            ("value", np.float64),
+            ("timestamp", "U32"),
+            ("connected", np.bool_),
+            ("severity", np.int32),
+            ("status", np.int32),
+            ("step_index", np.int64),
+            ("batch_index", np.int64),
+        ]
+    )
+    handle = _FakeHandle(
+        {
+            "samples": np.array(
+                [
+                    ("obj_a", 1.0, "2026-05-20T10:00:00", True, 0, 0, -1, 0),
+                    ("obj_b", 10.0, "2026-05-20T10:00:00", True, 0, 0, -1, 0),
+                    ("obj_a", 2.0, "2026-05-20T10:00:01", True, 0, 0, -1, 1),
+                    ("obj_b", 20.0, "2026-05-20T10:00:01", True, 0, 0, -1, 1),
+                ],
+                dtype=sample_dtype,
+            )
+        },
+        attrs={},
+    )
+    metadata_payload = {
+        "metadata": {
+            "run_id": "inferred_order_run",
+            "mode": "timed_acquisition",
+            "created_at": "2026-05-20T10:00:00",
+        }
+    }
+
+    snapshot = RunStore._load_timed_acquisition_series_fast_from_handle(
+        handle,
+        metadata_payload,
+        {"status": "completed", "details": {}},
+        minimum_record_count=1,
+    )
+
+    assert snapshot is not None
+    assert snapshot.ordered_object_ids == ["obj_a", "obj_b"]
+    assert snapshot.series_values["obj_a"] == [1.0, 2.0]
+    assert snapshot.series_values["obj_b"] == [10.0, 20.0]
 
 
 def test_fast_timed_snapshot_returns_none_when_target_order_does_not_match_samples():
@@ -372,6 +461,31 @@ def test_fast_timed_snapshot_marks_legacy_runs_without_batch_index():
 
     assert snapshot is not None
     assert snapshot.used_legacy_batch_reconstruction is True
+
+
+def test_load_steps_returns_empty_for_legacy_files_without_steps_dataset():
+    handle = {}
+
+    assert RunStore._load_steps(handle, []) == []
+
+
+def test_hdf5_writer_creates_compressed_datasets(tmp_path: Path):
+    import h5py
+
+    store = RunStore(tmp_path)
+    metadata = RunMetadata(
+        run_id="compressed_run",
+        mode=RunMode.TIMED_ACQUISITION,
+        created_at=datetime.fromisoformat("2026-05-21T09:00:00"),
+    )
+    raw_path = store.start_run(metadata)
+    store.close_active_stream()
+
+    with h5py.File(raw_path, "r") as handle:
+        assert handle["samples"].compression == "gzip"
+        assert handle["steps"].compression == "gzip"
+        assert handle["waveforms/index"].compression == "gzip"
+        assert handle["waveforms/data"].compression == "gzip"
 
 
 def test_run_store_persists_and_loads_waveform_index_and_values(tmp_path: Path):

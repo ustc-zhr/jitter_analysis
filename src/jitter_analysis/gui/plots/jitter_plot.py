@@ -245,7 +245,7 @@ if QtWidgets is not None:
             self.info_label.setText(
                 f"Showing {len(visible_rows)}/{len(self._series_rows)} variables. "
                 f"Focus: {focused_label}, {count_phrase}{filter_note}, mean={float(focused_row['mean']):.6g}, "
-                f"std={float(focused_row['std']):.6g}, rms={float(focused_row['rms']):.6g}, "
+                f"std={float(focused_row['std']):.6g}, jitter rms={float(focused_row['rms']):.6g}, "
                 f"p2p={float(focused_row['p2p']):.6g}, plot={value_phrase}.{fallback_note}"
             )
 

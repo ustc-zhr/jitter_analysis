@@ -25,6 +25,8 @@ from .serializers import to_jsonable
 class RunStore:
     CONFIG_SNAPSHOT_FILENAME = "config_snapshot.json"
     TIMED_FAST_PATH_MIN_RECORDS = 200_000
+    TIMED_FAST_PATH_ORDER_INFERENCE_SCAN_LIMIT = 10_000
+    SAMPLE_LOAD_CHUNK_SIZE = 100_000
 
     def __init__(self, root: str | Path = "runs") -> None:
         self.root = Path(root)
@@ -410,6 +412,13 @@ class RunStore:
         if metadata.mode != RunMode.TIMED_ACQUISITION:
             return None
 
+        if "samples" not in handle:
+            return None
+        dataset = handle["samples"]
+        record_count = int(dataset.shape[0])
+        if record_count < int(minimum_record_count):
+            return None
+
         details = cls._load_details(handle, summary_payload)
         object_ids = [
             str(item).strip()
@@ -417,12 +426,7 @@ class RunStore:
             if str(item).strip()
         ]
         if not object_ids:
-            return None
-
-        dataset = handle["samples"]
-        record_count = int(dataset.shape[0])
-        if record_count < int(minimum_record_count):
-            return None
+            object_ids = cls._infer_timed_fast_path_object_ids(dataset)
 
         object_count = len(object_ids)
         if object_count <= 0 or record_count <= 0 or record_count % object_count != 0:
@@ -470,32 +474,88 @@ class RunStore:
         )
 
     @classmethod
+    def _infer_timed_fast_path_object_ids(cls, dataset) -> list[str]:
+        sample_fields = set(getattr(dataset.dtype, "names", ()) or ())
+        record_count = int(getattr(dataset, "shape", [0])[0])
+        if record_count <= 0 or "pv_id" not in sample_fields:
+            return []
+
+        scan_count = min(record_count, cls.TIMED_FAST_PATH_ORDER_INFERENCE_SCAN_LIMIT)
+        if "batch_index" in sample_fields:
+            batch_indices = cls._read_dataset_field(dataset, "batch_index", slice(0, scan_count))
+            if len(batch_indices) <= 0:
+                return []
+            first_batch_index = int(batch_indices[0])
+            batch_size = 0
+            for raw_batch_index in batch_indices:
+                if int(raw_batch_index) != first_batch_index:
+                    break
+                batch_size += 1
+            if batch_size <= 0 or (batch_size == scan_count and record_count > scan_count):
+                return []
+            return cls._read_unique_pv_ids(dataset, batch_size)
+
+        first_ids = [
+            str(cls._decode(item)).strip()
+            for item in cls._read_dataset_field(dataset, "pv_id", slice(0, scan_count))
+        ]
+        if not first_ids or not first_ids[0]:
+            return []
+        first_id = first_ids[0]
+        for index, pv_id in enumerate(first_ids[1:], start=1):
+            if pv_id == first_id:
+                return cls._unique_nonblank_ids(first_ids[:index])
+        return []
+
+    @classmethod
+    def _read_unique_pv_ids(cls, dataset, count: int) -> list[str]:
+        return cls._unique_nonblank_ids(
+            str(cls._decode(item)).strip()
+            for item in cls._read_dataset_field(dataset, "pv_id", slice(0, count))
+        )
+
+    @staticmethod
+    def _unique_nonblank_ids(values) -> list[str]:
+        ids = [str(value).strip() for value in values if str(value).strip()]
+        if len(ids) != len(set(ids)):
+            return []
+        return ids
+
+    @classmethod
     def _load_samples(cls, handle) -> list[SampleRecord]:
         samples = []
         if "samples" not in handle:
             return samples
         dataset = handle["samples"]
+        record_count = int(dataset.shape[0])
+        if record_count <= 0:
+            return samples
         sample_fields = set(getattr(dataset.dtype, "names", ()) or ())
         has_batch_index = "batch_index" in sample_fields
-        for row in dataset:
-            step_index = int(row["step_index"])
-            batch_index = int(row["batch_index"]) if has_batch_index else -1
-            samples.append(
-                SampleRecord(
-                    pv_id=str(cls._decode(row["pv_id"])),
-                    value=float(row["value"]),
-                    timestamp=datetime.fromisoformat(str(cls._decode(row["timestamp"]))),
-                    connected=bool(row["connected"]),
-                    severity=int(row["severity"]),
-                    status=int(row["status"]),
-                    step_index=None if step_index < 0 else step_index,
-                    batch_index=None if batch_index < 0 else batch_index,
+        for start in range(0, record_count, cls.SAMPLE_LOAD_CHUNK_SIZE):
+            stop = min(start + cls.SAMPLE_LOAD_CHUNK_SIZE, record_count)
+            for row in dataset[start:stop]:
+                step_index = int(row["step_index"])
+                batch_index = int(row["batch_index"]) if has_batch_index else -1
+                samples.append(
+                    SampleRecord(
+                        pv_id=str(cls._decode(row["pv_id"])),
+                        value=float(row["value"]),
+                        timestamp=datetime.fromisoformat(str(cls._decode(row["timestamp"]))),
+                        connected=bool(row["connected"]),
+                        severity=int(row["severity"]),
+                        status=int(row["status"]),
+                        step_index=None if step_index < 0 else step_index,
+                        batch_index=None if batch_index < 0 else batch_index,
+                    )
                 )
-            )
         return samples
 
     @classmethod
     def _load_steps(cls, handle, samples: list[SampleRecord]) -> list[ScanStepRecord | MultiKnobStepRecord]:
+        if "steps" not in handle:
+            return []
+
         samples_by_step: dict[int, list[SampleRecord]] = {}
         for sample in samples:
             if sample.step_index is None:

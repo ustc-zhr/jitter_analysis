@@ -19,6 +19,12 @@ from .serializers import to_jsonable
 
 
 class HDF5RunWriter:
+    _dataset_compression = {
+        "compression": "gzip",
+        "compression_opts": 4,
+        "shuffle": True,
+    }
+
     def __init__(self, path: str | Path, metadata: RunMetadata) -> None:
         try:
             import h5py
@@ -86,6 +92,7 @@ class HDF5RunWriter:
             maxshape=(None,),
             chunks=True,
             dtype=self._sample_dtype,
+            **self._dataset_compression,
         )
         self._steps = self._file.create_dataset(
             "steps",
@@ -93,6 +100,7 @@ class HDF5RunWriter:
             maxshape=(None,),
             chunks=True,
             dtype=self._step_dtype,
+            **self._dataset_compression,
         )
         self._waveforms_index = self._file.create_dataset(
             "waveforms/index",
@@ -100,6 +108,7 @@ class HDF5RunWriter:
             maxshape=(None,),
             chunks=True,
             dtype=self._waveform_index_dtype,
+            **self._dataset_compression,
         )
         self._waveforms_data = self._file.create_dataset(
             "waveforms/data",
@@ -107,6 +116,7 @@ class HDF5RunWriter:
             maxshape=(None,),
             chunks=True,
             dtype=np.float64,
+            **self._dataset_compression,
         )
         self.waveform_record_count = 0
         self._pending_row_count = 0

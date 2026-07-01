@@ -40,6 +40,7 @@ if __package__ in {None, ""}:
     from jitter_analysis.gui.dialogs.random_knob_config_dialog import RandomKnobConfigDialog
     from jitter_analysis.gui.dialogs.run_browser_dialog import RunBrowserDialog
     from jitter_analysis.gui.dialogs.setup_browser_dialog import SetupBrowserDialog
+    from jitter_analysis.gui.config_snapshot import config_snapshot_text
     from jitter_analysis.gui.waveform_analysis import WaveformAnalysisWorker
     from jitter_analysis.gui.plots.correlation_plot import CorrelationPlot
     from jitter_analysis.gui.plots.jitter_plot import JitterPlot
@@ -80,6 +81,7 @@ else:
     from .dialogs.random_knob_config_dialog import RandomKnobConfigDialog
     from .dialogs.run_browser_dialog import RunBrowserDialog
     from .dialogs.setup_browser_dialog import SetupBrowserDialog
+    from .config_snapshot import config_snapshot_text
     from .waveform_analysis import WaveformAnalysisWorker
     from .plots.correlation_plot import CorrelationPlot
     from .plots.jitter_plot import JitterPlot
@@ -593,7 +595,7 @@ class MainWindow(_MainWindowBase):
         layout = QtWidgets.QVBoxLayout(widget)
         self.jitter_table = QtWidgets.QTableWidget(0, 9)
         self.jitter_table.setHorizontalHeaderLabels(
-            ["PV", "Count", "Mean", "Std", "RMS", "P2P", "Min", "Max", "Unit"]
+            ["PV", "Count", "Mean", "Std", "Jitter RMS", "P2P", "Min", "Max", "Unit"]
         )
         self.jitter_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.jitter_table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
@@ -2808,14 +2810,7 @@ class MainWindow(_MainWindowBase):
             return None
 
     def _read_loaded_config_snapshot_text(self) -> str:
-        if self.loaded_config is None:
-            raise RuntimeError("No PV library is loaded.")
-
-        source_path = str(self.loaded_config.source_path or "").strip()
-        if not source_path:
-            raise RuntimeError("The loaded PV library has no source path and cannot be snapshotted.")
-
-        return Path(source_path).read_text(encoding="utf-8")
+        return config_snapshot_text(self.loaded_config)
 
     def check_selected_connections(self) -> None:
         if not self._ensure_epics_runtime():

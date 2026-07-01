@@ -68,6 +68,7 @@ Important details:
 - waveform objects require `capture_mode: "waveform"` and a positive `waveform_sample_interval_sec`.
 - waveform capture is currently available in Monitor mode only.
 - knob readback PVs are automatically exposed as derived read PV objects when they are not already present.
+- jitter RMS is computed from mean-centered samples, not from the raw DC-offset signal.
 
 ## Data Safety
 

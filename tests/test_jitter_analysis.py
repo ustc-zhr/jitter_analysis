@@ -18,6 +18,8 @@ def test_compute_jitter_stats():
     stats = compute_jitter_stats([1.0, 2.0, 3.0, 4.0])
     assert stats.count == 4
     assert stats.mean == 2.5
+    assert round(stats.std, 6) == 1.118034
+    assert round(stats.rms, 6) == 1.118034
     assert round(stats.peak_to_peak, 6) == 3.0
 
 

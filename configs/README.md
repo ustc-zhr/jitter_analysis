@@ -25,6 +25,7 @@
 - `presets`
 
 这些字段由 [validator.py](../src/jitter_analysis/config/validator.py) 检查。缺任意一个都会加载失败。
+加载器还会校验常用嵌套字段、重复 ID、正数采样参数、非负 settle 参数和 knob limits。建议在提交配置前运行文末的校验命令。
 
 ## 最小结构
 
@@ -145,6 +146,7 @@
 - `limits` 会在扫描时用于拦截越界写入。
 - `step_hint` 会被 GUI 用来生成建议扫描范围。
 - `readback_pv` 最好是数值型 PV，因为扫描逻辑会把它按 `float` 来读。
+- 如果 `readback_pv` 没有在 `objects` 中显式出现，加载器会自动派生一个只读 object，ID 形如 `<knob_id>__readback`，并加上 `readback`、`knob_readback` tags。
 
 ## objects 配置规则
 
@@ -200,6 +202,7 @@
 注意：
 
 - 默认情况下，采样逻辑会把 `result.value` 当成标量处理。
+- `id` 必须在 `objects` 中唯一；`groups`、`knobs` 和 `presets` 也有同样的唯一 ID 要求。
 - 如果不写 `capture_mode`，默认就是 `"scalar"`，也就是沿用现在的标量采样与 jitter/correlation/spectrum 链路。
 - 如果某个 PV 返回的是 waveform/数组，但你只关心它的均值，可以给这个 object 加上 `"value_reducer": "mean"`。
 - `value_reducer: "mean"` 会把返回数组里的有限数值先求平均，再作为这个 object 的单个采样值进入 jitter/correlation/spectrum。

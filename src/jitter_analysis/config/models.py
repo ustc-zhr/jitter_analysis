@@ -136,3 +136,4 @@ class PvListConfig:
     objects: list[ObjectSpec]
     presets: list[PresetSpec]
     source_path: str | None = None
+    source_text: str = ""

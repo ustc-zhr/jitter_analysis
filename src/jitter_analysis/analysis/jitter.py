@@ -39,7 +39,8 @@ def compute_jitter_stats(values: Sequence[float]) -> JitterStats:
 
     mean = float(np.mean(data))
     std = float(np.std(data, ddof=0))
-    rms = float(math.sqrt(np.mean(np.square(data))))
+    centered = data - mean
+    rms = float(math.sqrt(np.mean(np.square(centered))))
     peak_to_peak = float(np.ptp(data))
     return JitterStats(
         count=int(data.size),

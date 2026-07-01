@@ -106,7 +106,7 @@ Suggested object fields:
 
 Keep operational defaults in the config file instead of hardcoding them in the GUI:
 
-- `defaults.acquisition.sample_interval_sec`
+- `defaults.acquisition.shot_interval_sec`
 - `defaults.acquisition.sample_count`
 - `defaults.acquisition.timeout_sec`
 - `defaults.scan.settle_mode`
