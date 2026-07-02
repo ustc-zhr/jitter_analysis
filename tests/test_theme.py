@@ -14,6 +14,7 @@ from jitter_analysis.gui.theme import (
     theme_label,
     theme_spec,
 )
+from jitter_analysis.gui.plots.theme import plot_theme_spec
 
 
 def test_default_theme_exists():
@@ -39,6 +40,12 @@ def test_stylesheet_contains_theme_specific_menu_and_tab_rules():
 
 def test_dark_theme_stylesheet_contains_dark_palette_tokens():
     stylesheet = build_app_stylesheet("night_shift")
-    assert "#0f141b" in stylesheet
-    assert "#1b2430" in stylesheet
-    assert "#f3f8ff" in stylesheet
+    assert "#0f1519" in stylesheet
+    assert "#172027" in stylesheet
+    assert "#45d0bc" in stylesheet
+    assert '"IBM Plex Sans", "Source Han Sans SC", "Segoe UI", sans-serif' in stylesheet
+
+
+def test_plot_theme_background_tracks_gui_theme():
+    assert plot_theme_spec("night_shift").background == "#11181e"
+    assert plot_theme_spec("control_room").background == "#fffdf8"

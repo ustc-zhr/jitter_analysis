@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import math
 
+from .theme import style_plot_widget
+
 try:
     from PyQt5 import QtWidgets
 except ImportError:  # pragma: no cover - optional runtime dependency
@@ -42,6 +44,7 @@ if QtWidgets is not None:
 
             self.plot_widget.clear()
             self.plot_widget.addLegend()
+            style_plot_widget(self.plot_widget)
             axis_label = knob_name.strip()
             if knob_unit.strip():
                 axis_label = f"{axis_label} [{knob_unit}]".strip()
@@ -60,6 +63,7 @@ if QtWidgets is not None:
                 self._curves[obj.id] = curve
                 self._x_data[obj.id] = []
                 self._y_data[obj.id] = []
+            style_plot_widget(self.plot_widget)
 
         def append_step(self, knob_value: float, samples) -> None:
             if self.plot_widget is None:

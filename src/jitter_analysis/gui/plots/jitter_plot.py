@@ -6,6 +6,7 @@ from datetime import datetime
 from ...analysis.jitter import transform_jitter_values
 from .visibility import resolve_initial_visibility
 from .trend_plot import TrendAxisItem
+from .theme import style_plot_widget
 
 try:
     from PyQt5 import QtCore, QtWidgets
@@ -42,6 +43,8 @@ if QtWidgets is not None:
             self.series_button = QtWidgets.QToolButton(self)
             self.series_button.setText("Visible Variables")
             self.series_button.setPopupMode(QtWidgets.QToolButton.InstantPopup)
+            self.series_button.setProperty("plotToolbarControl", "true")
+            self.series_button.setFixedHeight(28)
             self.series_menu = QtWidgets.QMenu(self.series_button)
             self.series_button.setMenu(self.series_menu)
             self.series_button.setEnabled(False)
@@ -51,6 +54,7 @@ if QtWidgets is not None:
             self.display_mode_combo.addItem("Raw", "raw")
             self.display_mode_combo.addItem("Mean-centered", "mean_centered")
             self.display_mode_combo.addItem("Z-score", "z_score")
+            self.display_mode_combo.setFixedHeight(28)
             self.display_mode_combo.setToolTip(
                 "Choose raw values, mean-centered values, or z-score normalization for comparison."
             )
@@ -60,8 +64,10 @@ if QtWidgets is not None:
             self.axis_combo.addItem("Sample Index", "sample_index")
             self.axis_combo.addItem("Elapsed Time", "elapsed_time")
             self.axis_combo.addItem("Clock Time", "clock_time")
+            self.axis_combo.setFixedHeight(28)
             controls.addWidget(self.axis_combo, 0)
             controls.addStretch(1)
+            self.controls_layout = controls
             layout.addLayout(controls)
 
             self.info_label = QtWidgets.QLabel("Select one or more read PVs to inspect jitter points.")
@@ -86,6 +92,9 @@ if QtWidgets is not None:
             self.display_mode_combo.currentIndexChanged.connect(self._render_series)
             self.axis_combo.currentIndexChanged.connect(self._render_series)
 
+        def add_trailing_control_widget(self, widget) -> None:
+            self.controls_layout.addWidget(widget, 0)
+
         def clear_data(self, message: str) -> None:
             self._series_rows = []
             self._series_visibility = {}
@@ -99,6 +108,7 @@ if QtWidgets is not None:
             if self.plot_widget is not None:
                 self.plot_widget.clear()
                 self.plot_widget.addLegend()
+                style_plot_widget(self.plot_widget)
                 self.plot_widget.setTitle("Jitter Points")
                 self.plot_widget.setLabel("bottom", "Sample Index")
                 self.plot_widget.setLabel("left", "Value")
@@ -279,6 +289,7 @@ if QtWidgets is not None:
                 if self.plot_widget is not None:
                     self.plot_widget.clear()
                     self.plot_widget.addLegend()
+                    style_plot_widget(self.plot_widget)
                     self.plot_widget.setTitle("Jitter Points")
                     self.plot_widget.setLabel("bottom", "Sample Index")
                     self.plot_widget.setLabel("left", "Value")
@@ -339,6 +350,7 @@ if QtWidgets is not None:
 
             self.plot_widget.clear()
             self.plot_widget.addLegend()
+            style_plot_widget(self.plot_widget)
             if requested_mode == "mean_centered":
                 self.plot_widget.setTitle("Jitter Points (Mean-Centered)")
             elif requested_mode == "z_score":
@@ -401,6 +413,8 @@ if QtWidgets is not None:
                     )
                     self.plot_widget.addItem(mean_line)
                     self._mean_lines.append(mean_line)
+
+            style_plot_widget(self.plot_widget)
 
 else:
 

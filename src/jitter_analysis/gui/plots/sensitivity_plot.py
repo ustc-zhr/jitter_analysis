@@ -175,14 +175,14 @@ if QtWidgets is not None:
                 knob_values,
                 response_values,
                 data=point_payloads,
-                pen=pg.mkPen("#2563eb", width=1),
-                brush=pg.mkBrush("#2563eb"),
+                pen=pg.mkPen("#78d5e3", width=1),
+                brush=pg.mkBrush("#78d5e3"),
                 size=8,
                 hoverable=True,
                 hoverSymbol="o",
                 hoverSize=10,
-                hoverPen=pg.mkPen("#1d4ed8", width=2),
-                hoverBrush=pg.mkBrush("#60a5fa"),
+                hoverPen=pg.mkPen("#45d0bc", width=2),
+                hoverBrush=pg.mkBrush("#45d0bc"),
                 tip=self._point_tip,
             )
             self.plot_widget.addItem(self._scatter_item)
@@ -195,7 +195,7 @@ if QtWidgets is not None:
                     self.plot_widget.plot(
                         [x_min, x_max],
                         [slope * x_min + intercept, slope * x_max + intercept],
-                        pen=pg.mkPen(color="#dc2626", width=2),
+                        pen=pg.mkPen(color="#ff6b6b", width=2),
                     )
 
         @staticmethod

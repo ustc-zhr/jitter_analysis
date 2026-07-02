@@ -33,25 +33,7 @@ if QtWidgets is not None:
 
         def _create_page_section(self, title: str):
             box = QtWidgets.QGroupBox(title)
-            box.setStyleSheet(
-                """
-                QGroupBox {
-                    font-size: 14px;
-                    font-weight: 700;
-                    color: #1f2937;
-                    border: 1px solid #ddd4c7;
-                    border-radius: 10px;
-                    background: #fffdf9;
-                    margin-top: 12px;
-                    padding-top: 6px;
-                }
-                QGroupBox::title {
-                    subcontrol-origin: margin;
-                    left: 12px;
-                    padding: 0 6px;
-                }
-                """
-            )
+            box.setProperty("themeSection", "main")
             return box
 
         @staticmethod
@@ -59,6 +41,11 @@ if QtWidgets is not None:
             form.setContentsMargins(12, 12, 12, 12)
             form.setHorizontalSpacing(12)
             form.setVerticalSpacing(10)
+
+        @staticmethod
+        def _apply_button_role(button, role: str) -> None:
+            button.setProperty("role", role)
+            button.setMinimumHeight(40)
 
         def _build_monitor_page(self):
             widget = QtWidgets.QWidget()
@@ -88,7 +75,7 @@ if QtWidgets is not None:
                 "Use it for response curves, one-variable scans, and sensitivity checks."
             )
             self.single_intro_label.setWordWrap(True)
-            self.single_intro_label.setStyleSheet("QLabel { color: #475569; }")
+            self.single_intro_label.setProperty("role", "pageHint")
             layout.addWidget(self.single_intro_label)
 
             knob_box = self._create_page_section("Active Knob")
@@ -171,6 +158,8 @@ if QtWidgets is not None:
             self.preview_refresh_button = QtWidgets.QPushButton("Refresh Preview")
             self.preview_show_button = QtWidgets.QPushButton("Show Details")
             self.preview_show_button.setEnabled(False)
+            self._apply_button_role(self.preview_refresh_button, "diagnostic")
+            self._apply_button_role(self.preview_show_button, "diagnostic")
             preview_actions = QtWidgets.QHBoxLayout()
             preview_actions.setSpacing(8)
             preview_actions.addWidget(self.preview_refresh_button)
@@ -203,7 +192,7 @@ if QtWidgets is not None:
                 "Use it for multi-variable perturbation, correlation studies, and robustness scans."
             )
             self.random_intro_label.setWordWrap(True)
-            self.random_intro_label.setStyleSheet("QLabel { color: #475569; }")
+            self.random_intro_label.setProperty("role", "pageHint")
             layout.addWidget(self.random_intro_label)
 
             ranges_box = self._create_page_section("Knob Ranges")
@@ -221,6 +210,7 @@ if QtWidgets is not None:
             )
             self.random_config_summary_label.setWordWrap(True)
             self.random_config_button = QtWidgets.QPushButton("Configure Ranges...")
+            self._apply_button_role(self.random_config_button, "control")
             range_actions = QtWidgets.QHBoxLayout()
             range_actions.setSpacing(8)
             range_actions.addWidget(self.random_config_button)
@@ -280,6 +270,8 @@ if QtWidgets is not None:
             self.random_preview_button = QtWidgets.QPushButton("Refresh Preview")
             self.random_preview_show_button = QtWidgets.QPushButton("Show Details")
             self.random_preview_show_button.setEnabled(False)
+            self._apply_button_role(self.random_preview_button, "diagnostic")
+            self._apply_button_role(self.random_preview_show_button, "diagnostic")
             preview_actions = QtWidgets.QHBoxLayout()
             preview_actions.setSpacing(8)
             preview_actions.addWidget(self.random_preview_button)

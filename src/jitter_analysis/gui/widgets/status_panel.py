@@ -13,82 +13,24 @@ if QtWidgets is not None:
             super().__init__(parent)
             self._items = {}
             self.setObjectName("statusStrip")
-            self.setStyleSheet(
-                """
-                QWidget#statusStrip {
-                    background: #fffaf3;
-                    border: 1px solid #ddd4c7;
-                    border-radius: 12px;
-                }
-                QFrame#statusItem {
-                    background: transparent;
-                    border: none;
-                    border-left: 4px solid #d8d0c3;
-                }
-                QFrame#statusItem[tone="info"] {
-                    border-left-color: #60a5fa;
-                }
-                QFrame#statusItem[tone="success"] {
-                    border-left-color: #86efac;
-                }
-                QFrame#statusItem[tone="warning"] {
-                    border-left-color: #f59e0b;
-                }
-                QFrame#statusItem[tone="danger"] {
-                    border-left-color: #f87171;
-                }
-                QFrame#statusSeparator {
-                    background: #e7dfd3;
-                    min-width: 1px;
-                    max-width: 1px;
-                    border: none;
-                }
-                QLabel[role="title"] {
-                    color: #7c6f60;
-                    font-size: 10px;
-                    font-weight: 700;
-                    letter-spacing: 0.8px;
-                }
-                QLabel[role="value"][tone="subtle"] {
-                    color: #475569;
-                    font-size: 15px;
-                    font-weight: 700;
-                }
-                QLabel[role="value"][tone="info"] {
-                    color: #1d4ed8;
-                    font-size: 15px;
-                    font-weight: 700;
-                }
-                QLabel[role="value"][tone="success"] {
-                    color: #166534;
-                    font-size: 15px;
-                    font-weight: 700;
-                }
-                QLabel[role="value"][tone="warning"] {
-                    color: #b45309;
-                    font-size: 15px;
-                    font-weight: 700;
-                }
-                QLabel[role="value"][tone="danger"] {
-                    color: #b91c1c;
-                    font-size: 15px;
-                    font-weight: 700;
-                }
-                """
-            )
+            self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
             layout = QtWidgets.QHBoxLayout(self)
+            self._layout = layout
             layout.setContentsMargins(12, 10, 12, 10)
             layout.setSpacing(0)
 
-            self.connection_value = self._add_item(layout, "connection", "CONNECTION", "Not checked")
-            self.mode_value = self._add_item(layout, "mode", "MODE", "Idle")
-            self.sample_value = self._add_item(layout, "sample", "SAMPLE", "-")
-            self.step_value = self._add_item(layout, "step", "STEP", "-")
-            self.current_pv_value = self._add_item(layout, "current", "CURRENT", "--")
-            self.timestamp_value = self._add_item(layout, "time", "TIME", "--")
+            self.connection_value = self._add_item(layout, "connection", "EPICS", "Not checked", 124)
+            self.mode_value = self._add_item(layout, "mode", "MODE", "Idle", 132)
+            self.sample_value = self._add_item(layout, "sample", "SAMPLES", "-", 96)
+            self.step_value = self._add_item(layout, "step", "STEP", "-", 90)
+            self.current_pv_value = self._add_item(layout, "current", "CURRENT PV", "--", 168)
+            self.timestamp_value = self._add_item(layout, "time", "TIME", "--", 126)
             layout.addStretch(1)
 
-        def _add_item(self, layout, key: str, title: str, value: str):
+        def add_trailing_widget(self, widget) -> None:
+            self._layout.addWidget(widget, 0)
+
+        def _add_item(self, layout, key: str, title: str, value: str, min_width: int):
             if self._items:
                 separator = QtWidgets.QFrame(self)
                 separator.setObjectName("statusSeparator")
@@ -98,7 +40,7 @@ if QtWidgets is not None:
             container = QtWidgets.QFrame(self)
             container.setObjectName("statusItem")
             container.setProperty("tone", "subtle")
-            container.setMinimumWidth(118)
+            container.setMinimumWidth(min_width)
             inner = QtWidgets.QVBoxLayout(container)
             inner.setContentsMargins(12, 2, 10, 2)
             inner.setSpacing(3)

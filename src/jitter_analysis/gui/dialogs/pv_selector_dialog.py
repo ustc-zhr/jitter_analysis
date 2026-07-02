@@ -62,6 +62,14 @@ if QtWidgets is not None:
                 QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
                 self,
             )
+            ok_button = button_box.button(QtWidgets.QDialogButtonBox.Ok)
+            cancel_button = button_box.button(QtWidgets.QDialogButtonBox.Cancel)
+            if ok_button is not None:
+                ok_button.setProperty("role", "control")
+                ok_button.setMinimumHeight(40)
+            if cancel_button is not None:
+                cancel_button.setProperty("role", "subtle")
+                cancel_button.setMinimumHeight(40)
             button_box.accepted.connect(self.accept)
             button_box.rejected.connect(self.reject)
             layout.addWidget(button_box)
@@ -78,6 +86,8 @@ if QtWidgets is not None:
             for group_id in self._group_ids(role):
                 group_box.addItem(self._group_labels.get(group_id, group_id), group_id)
             clear_button = QtWidgets.QPushButton("Clear Selection", tab)
+            clear_button.setProperty("role", "danger")
+            clear_button.setMinimumHeight(40)
             filters.addWidget(search, 1)
             filters.addWidget(group_box)
             filters.addWidget(clear_button)

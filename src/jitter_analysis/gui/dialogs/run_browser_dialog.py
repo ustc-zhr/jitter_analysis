@@ -27,16 +27,17 @@ if QtWidgets is not None:
             self.root_edit.setReadOnly(True)
             self.browse_button = QtWidgets.QPushButton("Browse...")
             self.refresh_button = QtWidgets.QPushButton("Refresh")
+            self.browse_button.setProperty("role", "diagnostic")
+            self.refresh_button.setProperty("role", "diagnostic")
+            self.browse_button.setMinimumHeight(40)
+            self.refresh_button.setMinimumHeight(40)
             controls.addWidget(self.root_edit, 1)
             controls.addWidget(self.browse_button)
             controls.addWidget(self.refresh_button)
             layout.addLayout(controls)
 
             self.scope_label = QtWidgets.QLabel("Scope: Run Root")
-            self.scope_label.setStyleSheet(
-                "QLabel { color: #475569; background: #f8fafc; border: 1px solid #d5dde8; "
-                "border-radius: 8px; padding: 4px 10px; }"
-            )
+            self.scope_label.setProperty("role", "statusPill")
             layout.addWidget(self.scope_label)
 
             self.summary_label = QtWidgets.QLabel("No runs loaded.")
@@ -63,6 +64,10 @@ if QtWidgets is not None:
             button_box = QtWidgets.QDialogButtonBox(self)
             self.open_button = button_box.addButton("Open Run", QtWidgets.QDialogButtonBox.AcceptRole)
             self.cancel_button = button_box.addButton(QtWidgets.QDialogButtonBox.Cancel)
+            self.open_button.setProperty("role", "control")
+            self.cancel_button.setProperty("role", "subtle")
+            self.open_button.setMinimumHeight(40)
+            self.cancel_button.setMinimumHeight(40)
             self.open_button.setEnabled(False)
             layout.addWidget(button_box)
 

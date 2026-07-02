@@ -3,8 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 try:
-    from PyQt5 import QtWidgets
+    from PyQt5 import QtGui, QtWidgets
 except ImportError:  # pragma: no cover - optional runtime dependency
+    QtGui = None
     QtWidgets = None
 
 
@@ -58,7 +59,7 @@ class ThemeSpec:
     splitter: str
 
 
-DEFAULT_THEME_ID = "control_room"
+DEFAULT_THEME_ID = "night_shift"
 
 
 THEMES: dict[str, ThemeSpec] = {
@@ -256,51 +257,51 @@ THEMES: dict[str, ThemeSpec] = {
     ),
     "night_shift": ThemeSpec(
         theme_id="night_shift",
-        label="Night Shift",
-        window_bg="#0f141b",
-        panel_bg="#161d26",
-        section_bg="#1b2430",
-        section_border="#2b3645",
-        section_title="#e8eef7",
-        input_bg="#131b24",
-        border="#334155",
-        border_soft="#243142",
-        text_primary="#e5edf8",
-        text_muted="#93a4bb",
-        text_disabled="#63748a",
-        focus="#5fa8ff",
-        button_bg="#1a2330",
-        button_hover="#223041",
-        subtle_bg="#131b24",
-        subtle_hover="#1b2634",
-        subtle_text="#b1c0d4",
-        primary_bg="#173451",
-        primary_hover="#204264",
-        primary_text="#e8f3ff",
-        primary_border="#35628f",
-        danger_bg="#3b1f27",
-        danger_hover="#4c2731",
-        danger_text="#ffccd4",
-        danger_border="#7d4656",
-        tab_bg="#1a2330",
-        tab_hover="#233042",
-        tab_selected_bg="#1f2b3a",
-        tab_text="#a8b6c9",
-        tab_selected_text="#f4f7fb",
-        tab_disabled_bg="#141c26",
-        tab_disabled_text="#5d6b7c",
-        menu_selected_bg="#1f3852",
-        menu_selected_text="#f3f8ff",
-        mode_toggle_bg="#17212d",
-        mode_toggle_hover="#202d3b",
-        mode_toggle_checked_bg="#22415f",
-        mode_toggle_checked_text="#eff6ff",
-        mode_toggle_checked_border="#5a8ec3",
-        scroll_bg="#111823",
-        scroll_handle="#415368",
-        tooltip_bg="#f3f7fc",
-        tooltip_fg="#0f1720",
-        splitter="#253140",
+        label="HALF Control Room",
+        window_bg="#0f1519",
+        panel_bg="#172027",
+        section_bg="#172027",
+        section_border="#24333d",
+        section_title="#7dd7c5",
+        input_bg="#10171c",
+        border="#31424d",
+        border_soft="#2a3943",
+        text_primary="#e6edf2",
+        text_muted="#99a9b5",
+        text_disabled="#6f7f89",
+        focus="#45d0bc",
+        button_bg="#22313a",
+        button_hover="#2b3f4b",
+        subtle_bg="#131c22",
+        subtle_hover="#18242c",
+        subtle_text="#c9d5dc",
+        primary_bg="#45d0bc",
+        primary_hover="#50decc",
+        primary_text="#0f1519",
+        primary_border="#45d0bc",
+        danger_bg="#22313a",
+        danger_hover="#2b3f4b",
+        danger_text="#e4b86f",
+        danger_border="#e4b86f",
+        tab_bg="#22313a",
+        tab_hover="#2b3f4b",
+        tab_selected_bg="#172027",
+        tab_text="#edf3f7",
+        tab_selected_text="#f3efe3",
+        tab_disabled_bg="#131c22",
+        tab_disabled_text="#6f7f89",
+        menu_selected_bg="#2b3f4b",
+        menu_selected_text="#edf3f7",
+        mode_toggle_bg="#22313a",
+        mode_toggle_hover="#2b3f4b",
+        mode_toggle_checked_bg="#45d0bc",
+        mode_toggle_checked_text="#0f1519",
+        mode_toggle_checked_border="#45d0bc",
+        scroll_bg="#10171c",
+        scroll_handle="#48606e",
+        tooltip_bg="#edf3f7",
+        tooltip_fg="#0f1519",
+        splitter="#24333d",
     ),
 }
 
@@ -335,11 +336,27 @@ def current_theme_id(app=None) -> str:
 
 def build_app_stylesheet(theme_id: str | ThemeSpec | None = None) -> str:
     spec = theme_id if isinstance(theme_id, ThemeSpec) else theme_spec(theme_id)
+    is_dark = spec.theme_id == "night_shift"
+    font_family = '"IBM Plex Sans", "Source Han Sans SC", "Segoe UI", sans-serif'
+    mono_font_family = '"JetBrains Mono", "Cascadia Mono", "Consolas", monospace'
+    hero_bg = "#1b262d" if is_dark else spec.input_bg
+    hero_title = "#f3efe3" if is_dark else spec.text_primary
+    hero_text = "#99a9b5" if is_dark else spec.text_muted
+    info_color = "#78d5e3" if is_dark else spec.focus
+    success_color = "#45d0bc" if is_dark else "#2d7f6d"
+    warning_color = "#e4b86f" if is_dark else "#a97118"
+    danger_color = "#ff6b6b" if is_dark else spec.danger_text
+    status_bg = "#131c22" if is_dark else spec.mode_toggle_bg
+    status_border = "#2a3943" if is_dark else spec.border_soft
+    status_idle_bar = "#4f6270" if is_dark else spec.border
     return f"""
 QWidget {{
+    background: {spec.window_bg};
     color: {spec.text_primary};
-    font-family: "Segoe UI", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+    font-family: {font_family};
     font-size: 13px;
+    selection-background-color: {spec.focus};
+    selection-color: {spec.primary_text};
 }}
 QMainWindow, QDialog {{
     background: {spec.window_bg};
@@ -353,23 +370,58 @@ QLabel[role="pageHint"] {{
 QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
     background: {spec.input_bg};
     border: 1px solid {spec.border};
-    border-radius: 8px;
-    padding: 6px 8px;
+    border-radius: 12px;
+    padding: 5px 10px;
+    min-height: 16px;
     selection-background-color: {spec.focus};
-    selection-color: #ffffff;
+    selection-color: {spec.primary_text};
 }}
 QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {{
     border: 1px solid {spec.focus};
+}}
+QLineEdit[runInfoControl="true"], QPushButton[runInfoControl="true"] {{
+    min-height: 28px;
+    max-height: 40px;
+    padding: 5px 10px;
+}}
+QPushButton[compactControl="true"], QToolButton[plotToolbarControl="true"] {{
+    min-height: 28px;
+    max-height: 28px;
+    padding: 3px 10px;
+}}
+QComboBox::drop-down, QSpinBox::up-button, QSpinBox::down-button,
+QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {{
+    border: none;
+    width: 20px;
+}}
+QComboBox QAbstractItemView {{
+    background: {spec.input_bg};
+    color: {spec.text_primary};
+    border: 1px solid {spec.border};
+    selection-background-color: {spec.menu_selected_bg};
+    selection-color: {spec.menu_selected_text};
+}}
+QPlainTextEdit {{
+    font-family: {mono_font_family};
+    font-size: 12px;
+    padding: 12px;
 }}
 QPushButton, QToolButton {{
     background: {spec.button_bg};
     color: {spec.text_primary};
     border: 1px solid {spec.border};
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 6px 12px;
+    min-height: 32px;
+    font-size: 12px;
+    font-weight: 700;
 }}
 QPushButton:hover, QToolButton:hover {{
     background: {spec.button_hover};
+    border-color: {spec.border};
+}}
+QPushButton:pressed, QToolButton:pressed {{
+    background: {spec.input_bg};
 }}
 QPushButton:disabled, QToolButton:disabled {{
     color: {spec.text_disabled};
@@ -380,29 +432,89 @@ QPushButton[role="subtle"], QToolButton[role="subtle"] {{
     background: {spec.subtle_bg};
     color: {spec.subtle_text};
     border: 1px solid {spec.border};
-    font-weight: 600;
 }}
 QPushButton[role="subtle"]:hover, QToolButton[role="subtle"]:hover {{
     background: {spec.subtle_hover};
 }}
-QToolButton#themeToggleButton {{
+QPushButton[role="diagnostic"], QToolButton[role="diagnostic"] {{
+    background: {spec.button_bg};
+    color: {info_color};
+    border: 1px solid {spec.border};
+}}
+QPushButton[role="diagnostic"]:hover, QToolButton[role="diagnostic"]:hover {{
+    background: {spec.button_hover};
+    border-color: {info_color};
+}}
+QPushButton[role="control"], QToolButton[role="control"] {{
+    background: {spec.primary_bg};
+    color: {spec.primary_text};
+    border: 1px solid {spec.primary_border};
+}}
+QPushButton[role="control"]:hover, QToolButton[role="control"]:hover {{
+    background: {spec.primary_hover};
+    border-color: {spec.primary_border};
+}}
+QPushButton[role="statusAction"], QToolButton[role="statusAction"] {{
+    background: transparent;
+    border: 1px solid {status_border};
+    border-radius: 8px;
+    color: {spec.text_muted};
+    min-height: 18px;
+    max-height: 30px;
+    padding: 2px 10px;
+    font-size: 12px;
+    font-weight: 700;
+}}
+QPushButton[role="statusAction"]:hover, QToolButton[role="statusAction"]:hover {{
+    background: transparent;
+    border-color: {spec.text_muted};
+    color: {spec.text_primary};
+}}
+QPushButton[role="statusAction"]:pressed, QToolButton[role="statusAction"]:pressed {{
+    background: transparent;
+    border-color: {spec.focus};
+}}
+QPushButton[role="statusAction"][tone="info"], QToolButton[role="statusAction"][tone="info"] {{
+    color: {info_color};
+}}
+QPushButton[role="statusAction"][tone="control"], QToolButton[role="statusAction"][tone="control"] {{
+    color: {success_color};
+}}
+QPushButton[role="statusAction"][tone="danger"], QToolButton[role="statusAction"][tone="danger"] {{
+    color: {danger_color};
+}}
+QToolButton#themeToggleButton, QToolButton#logToggleButton {{
     background: {spec.subtle_bg};
     color: {spec.subtle_text};
     border: 1px solid {spec.border};
     border-radius: 11px;
     padding: 0px;
-    min-width: 34px;
-    max-width: 34px;
-    min-height: 34px;
-    max-height: 34px;
     font-size: 14px;
     font-weight: 700;
 }}
-QToolButton#themeToggleButton:hover {{
+QToolButton#themeToggleButton {{
+    min-width: 32px;
+    max-width: 32px;
+    min-height: 32px;
+    max-height: 32px;
+}}
+QToolButton#logToggleButton {{
+    min-width: 44px;
+    max-width: 44px;
+    min-height: 32px;
+    max-height: 32px;
+    font-size: 14px;
+}}
+QToolButton#themeToggleButton:hover, QToolButton#logToggleButton:hover {{
     background: {spec.subtle_hover};
 }}
-QToolButton#themeToggleButton:pressed {{
+QToolButton#themeToggleButton:pressed, QToolButton#logToggleButton:pressed {{
     background: {spec.button_hover};
+}}
+QToolButton#logToggleButton[active="true"] {{
+    background: {spec.button_bg};
+    border-color: {spec.focus};
+    color: {spec.focus};
 }}
 QPushButton[role="primary"], QToolButton[role="primary"] {{
     background: {spec.primary_bg};
@@ -422,13 +534,24 @@ QPushButton[role="danger"], QToolButton[role="danger"] {{
 QPushButton[role="danger"]:hover, QToolButton[role="danger"]:hover {{
     background: {spec.danger_hover};
 }}
+QPushButton[role="subtle"]:disabled, QToolButton[role="subtle"]:disabled,
+QPushButton[role="diagnostic"]:disabled, QToolButton[role="diagnostic"]:disabled,
+QPushButton[role="control"]:disabled, QToolButton[role="control"]:disabled,
+QPushButton[role="primary"]:disabled, QToolButton[role="primary"]:disabled,
+QPushButton[role="danger"]:disabled, QToolButton[role="danger"]:disabled {{
+    color: {spec.text_disabled};
+    background: {spec.panel_bg};
+    border: 1px solid {spec.border_soft};
+}}
 QToolButton[themeRole="modeToggle"] {{
     background: {spec.mode_toggle_bg};
     color: {spec.text_primary};
     border: 1px solid {spec.border};
-    border-radius: 8px;
+    border-radius: 11px;
     padding: 6px 12px;
-    font-weight: 600;
+    min-height: 28px;
+    font-size: 12px;
+    font-weight: 700;
 }}
 QToolButton[themeRole="modeToggle"]:hover {{
     background: {spec.mode_toggle_hover};
@@ -450,34 +573,251 @@ QToolButton[themeRole="modeToggle"]:checked:disabled {{
 }}
 QTableWidget, QTreeWidget, QListWidget {{
     background: {spec.section_bg};
-    alternate-background-color: {spec.panel_bg};
+    alternate-background-color: {spec.subtle_bg};
     border: 1px solid {spec.section_border};
-    border-radius: 10px;
+    border-radius: 12px;
     gridline-color: {spec.border_soft};
+    selection-background-color: {spec.menu_selected_bg};
+    selection-color: {spec.menu_selected_text};
+}}
+QTableWidget::item:selected, QTreeWidget::item:selected, QListWidget::item:selected {{
+    background: {spec.menu_selected_bg};
+    color: {spec.menu_selected_text};
 }}
 QHeaderView::section {{
-    background: {spec.panel_bg};
-    color: {spec.text_primary};
+    background: {spec.subtle_bg};
+    color: {spec.text_muted};
     border: none;
     border-right: 1px solid {spec.section_border};
     border-bottom: 1px solid {spec.section_border};
-    padding: 8px 10px;
+    padding: 6px 8px;
+    font-weight: 700;
+}}
+QCheckBox {{
+    background: transparent;
+    border: none;
+    spacing: 8px;
+    font-size: 12px;
+    font-weight: 600;
+}}
+QCheckBox::indicator {{
+    width: 16px;
+    height: 16px;
+    border: 1px solid {spec.section_border};
+    border-radius: 4px;
+    background: {spec.input_bg};
+}}
+QCheckBox::indicator:checked {{
+    background: {spec.focus};
+    border: 1px solid {spec.focus};
+}}
+QWidget#appShell {{
+    background: {spec.window_bg};
+}}
+QFrame#appHeader {{
+    background: {hero_bg};
+    border: 1px solid {spec.section_border};
+    border-radius: 14px;
+}}
+QLabel#appTitle {{
+    color: {hero_title};
+    background: transparent;
+    font-size: 23px;
+    font-weight: 700;
+}}
+QLabel#appSubtitle {{
+    color: {hero_text};
+    background: transparent;
+    font-size: 12px;
+}}
+QFrame#workspaceFrame {{
+    background: {spec.panel_bg};
+    border: 1px solid {spec.section_border};
+    border-radius: 14px;
+}}
+QLabel[role="statusPill"] {{
+    background: {spec.button_bg};
+    border: 1px solid {spec.border};
+    border-radius: 10px;
+    color: {spec.text_primary};
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 700;
+}}
+QLabel[role="statusPill"][tone="info"] {{
+    border-color: {info_color};
+    color: {info_color};
+}}
+QLabel[role="statusPill"][tone="success"] {{
+    border-color: {success_color};
+    color: {success_color};
+}}
+QLabel[role="statusPill"][tone="warning"] {{
+    border-color: {warning_color};
+    color: {warning_color};
+}}
+QLabel[role="statusPill"][tone="danger"] {{
+    border-color: {danger_color};
+    color: {danger_color};
+}}
+QWidget#statusStrip {{
+    background: {status_bg};
+    border: 1px solid {status_border};
+    border-radius: 10px;
+}}
+QWidget#runStatusControls {{
+    background: transparent;
+    border: none;
+}}
+QFrame#statusItem {{
+    background: transparent;
+    border: none;
+    border-left: 4px solid {status_idle_bar};
+    border-radius: 0px;
+}}
+QFrame#statusItem[tone="info"] {{
+    border-left-color: {info_color};
+}}
+QFrame#statusItem[tone="success"] {{
+    border-left-color: {success_color};
+}}
+QFrame#statusItem[tone="warning"] {{
+    border-left-color: {warning_color};
+}}
+QFrame#statusItem[tone="danger"] {{
+    border-left-color: {danger_color};
+}}
+QFrame#statusSeparator {{
+    background: {spec.border};
+    min-width: 1px;
+    max-width: 1px;
+    border: none;
+}}
+QLabel[role="title"] {{
+    color: {spec.text_muted};
+    background: transparent;
+    border: none;
+    font-size: 10px;
+    font-weight: 700;
+}}
+QLabel[role="field"] {{
+    color: {spec.text_muted};
+    background: transparent;
+    border: none;
+    font-size: 11px;
+    font-weight: 700;
+}}
+QLabel[role="value"][tone="subtle"] {{
+    color: {spec.text_primary};
+    background: transparent;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+}}
+QLabel[role="value"][tone="info"] {{
+    color: {info_color};
+    background: transparent;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+}}
+QLabel[role="value"][tone="success"] {{
+    color: {success_color};
+    background: transparent;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+}}
+QLabel[role="value"][tone="warning"] {{
+    color: {warning_color};
+    background: transparent;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+}}
+QLabel[role="value"][tone="danger"] {{
+    color: {danger_color};
+    background: transparent;
+    border: none;
+    font-size: 14px;
     font-weight: 700;
 }}
 QGroupBox[themeSection="main"] {{
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 800;
     color: {spec.section_title};
     border: 1px solid {spec.section_border};
-    border-radius: 12px;
+    border-radius: 14px;
     background: {spec.section_bg};
-    margin-top: 14px;
-    padding-top: 6px;
+    margin-top: 0px;
+    padding-top: 30px;
 }}
 QGroupBox[themeSection="main"]::title {{
-    subcontrol-origin: margin;
-    left: 12px;
-    padding: 0 6px;
+    subcontrol-origin: padding;
+    subcontrol-position: top left;
+    left: 16px;
+    top: 7px;
+    padding: 0px;
+    background: transparent;
+    border: none;
+}}
+QGroupBox[themeSection="main"]::indicator {{
+    width: 8px;
+    height: 8px;
+    background-color: {danger_color};
+    border-radius: 4px;
+}}
+QFrame#analysisSection {{
+    background: {spec.section_bg};
+    border: 1px solid {spec.section_border};
+    border-radius: 14px;
+}}
+QLabel#analysisSectionTitle {{
+    color: {spec.section_title};
+    background: transparent;
+    border: none;
+    font-size: 15px;
+    font-weight: 800;
+}}
+QFrame#runInfoDivider {{
+    background: {spec.section_border};
+    border: none;
+    min-height: 1px;
+    max-height: 1px;
+    margin: 2px 0px;
+}}
+QWidget#analysisOutlierFilterPanel {{
+    background: transparent;
+    border: none;
+}}
+QFrame#modeStatusBanner {{
+    background: {status_bg};
+    border: 1px solid {status_border};
+    border-radius: 12px;
+    padding: 0;
+}}
+QFrame#modeStatusBanner[tone="info"] {{
+    border-color: {info_color};
+}}
+QFrame#modeStatusBanner[tone="success"] {{
+    border-color: {success_color};
+}}
+QFrame#modeStatusBanner[tone="warning"] {{
+    border-color: {warning_color};
+}}
+QFrame#modeStatusBanner[tone="danger"] {{
+    border-color: {danger_color};
+}}
+QFrame#modeStatusBanner QLabel[role="message"] {{
+    color: {spec.text_primary};
+    background: transparent;
+    border: none;
+}}
+QFrame#modeStatusBanner QLabel[role="context"] {{
+    color: {spec.text_muted};
+    background: transparent;
+    border: none;
+    font-size: 12px;
 }}
 QTabWidget#workspaceTabs::pane {{
     border: none;
@@ -499,13 +839,14 @@ QTabBar#workspaceTabBar::tab {{
     padding: 10px 18px;
     margin-right: 6px;
     min-width: 96px;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 700;
 }}
 QTabBar#workspaceTabBar::tab:selected {{
     background: {spec.tab_selected_bg};
     color: {spec.tab_selected_text};
     border-color: {spec.section_border};
+    border-bottom-color: {spec.tab_selected_bg};
 }}
 QTabBar#workspaceTabBar::tab:hover:!selected {{
     background: {spec.tab_hover};
@@ -517,7 +858,7 @@ QTabBar#workspaceTabBar::tab:disabled {{
 }}
 QTabWidget#analysisTabs::pane {{
     border: 1px solid {spec.section_border};
-    border-radius: 12px;
+    border-radius: 14px;
     background: {spec.section_bg};
     top: -1px;
 }}
@@ -531,12 +872,14 @@ QTabBar#analysisTabBar::tab {{
     padding: 8px 12px;
     margin-right: 4px;
     min-width: 0px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 700;
 }}
 QTabBar#analysisTabBar::tab:selected {{
     background: {spec.tab_selected_bg};
     color: {spec.tab_selected_text};
     border-color: {spec.section_border};
+    border-bottom-color: {spec.tab_selected_bg};
 }}
 QTabBar#analysisTabBar::tab:hover:!selected {{
     background: {spec.tab_hover};
@@ -553,7 +896,7 @@ QMenuBar {{
 }}
 QMenuBar::item {{
     padding: 6px 12px;
-    border-radius: 6px;
+    border-radius: 8px;
     background: transparent;
 }}
 QMenuBar::item:selected {{
@@ -567,7 +910,7 @@ QMenu {{
 }}
 QMenu::item {{
     padding: 6px 20px 6px 12px;
-    border-radius: 6px;
+    border-radius: 8px;
 }}
 QMenu::item:selected {{
     background: {spec.menu_selected_bg};
@@ -619,6 +962,15 @@ def apply_app_theme(app, theme_id: str | None = None) -> str:
     set_style = getattr(app, "setStyle", None)
     if callable(set_style):
         set_style("Fusion")
+    if QtGui is not None:
+        app_font = QtGui.QFont()
+        set_families = getattr(app_font, "setFamilies", None)
+        if callable(set_families):
+            set_families(["IBM Plex Sans", "Source Han Sans SC", "Segoe UI"])
+        else:
+            app_font.setFamily("IBM Plex Sans")
+        app_font.setPointSize(10)
+        app.setFont(app_font)
     app.setProperty("gui_theme_id", spec.theme_id)
     app.setProperty("gui_theme_label", spec.label)
     app.setStyleSheet(build_app_stylesheet(spec))

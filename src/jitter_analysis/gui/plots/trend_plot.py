@@ -5,6 +5,7 @@ from datetime import datetime
 import math
 
 from .visibility import downsample_series_min_max, resolve_initial_visibility, slice_series_tail
+from .theme import style_plot_widget
 
 try:
     from PyQt5 import QtWidgets
@@ -105,6 +106,8 @@ if QtWidgets is not None:
             self.series_button = QtWidgets.QToolButton(self)
             self.series_button.setText("Visible Variables")
             self.series_button.setPopupMode(QtWidgets.QToolButton.InstantPopup)
+            self.series_button.setProperty("plotToolbarControl", "true")
+            self.series_button.setFixedHeight(28)
             self.series_menu = QtWidgets.QMenu(self.series_button)
             self.series_button.setMenu(self.series_menu)
             self.series_button.setEnabled(False)
@@ -114,11 +117,13 @@ if QtWidgets is not None:
             self.axis_combo.addItem("Sample Index", "sample_index")
             self.axis_combo.addItem("Elapsed Time", "elapsed_time")
             self.axis_combo.addItem("Clock Time", "clock_time")
+            self.axis_combo.setFixedHeight(28)
             controls.addWidget(self.axis_combo, 0)
             controls.addWidget(QtWidgets.QLabel("Range"))
             self.range_combo = QtWidgets.QComboBox(self)
             self.range_combo.addItem("Recent Window", "recent")
             self.range_combo.addItem("Full History", "full")
+            self.range_combo.setFixedHeight(28)
             controls.addWidget(self.range_combo, 0)
             self.recent_points_spin = QtWidgets.QSpinBox(self)
             self.recent_points_spin.setRange(100, 1_000_000)
@@ -126,6 +131,7 @@ if QtWidgets is not None:
             self.recent_points_spin.setValue(DEFAULT_TREND_RECENT_POINTS)
             self.recent_points_spin.setSuffix(" pts")
             self.recent_points_spin.setToolTip("How many recent samples to keep visible in trend view.")
+            self.recent_points_spin.setFixedHeight(28)
             controls.addWidget(self.recent_points_spin, 0)
             controls.addStretch(1)
             layout.addLayout(controls)
@@ -316,6 +322,7 @@ if QtWidgets is not None:
 
             self.plot_widget.clear()
             self.plot_widget.addLegend()
+            style_plot_widget(self.plot_widget)
             self._update_axis_label()
             self.plot_widget.setLabel("left", "Value")
             self._apply_title()
@@ -335,6 +342,7 @@ if QtWidgets is not None:
                 )
                 self._curves[pv_id] = curve
 
+            style_plot_widget(self.plot_widget)
             self._restore_highlight_region()
             self._update_info_label()
 
@@ -359,8 +367,8 @@ if QtWidgets is not None:
                 values=(left, right),
                 orientation="vertical",
                 movable=False,
-                brush=pg.mkBrush(251, 191, 36, 60),
-                pen=pg.mkPen(color="#f59e0b", width=2),
+                brush=pg.mkBrush(228, 184, 111, 60),
+                pen=pg.mkPen(color="#e4b86f", width=2),
             )
             region.setZValue(-5)
             self.plot_widget.addItem(region)

@@ -9,6 +9,11 @@ except ImportError:  # pragma: no cover - optional runtime dependency
     QtGui = None
     QtWidgets = None
 
+try:
+    from ..theme import current_theme_id
+except ImportError:  # pragma: no cover - fallback when imported out of package context
+    current_theme_id = None
+
 
 if QtWidgets is not None:
 
@@ -104,16 +109,18 @@ if QtWidgets is not None:
                     item.setTextAlignment(QtCore.Qt.AlignCenter)
                     if math.isnan(value):
                         item.setText("--")
-                        item.setBackground(QtGui.QColor("#f0f0f0"))
+                        cell_color = self._nan_cell_color()
                     else:
                         item.setText(f"{value:.3f}")
-                        item.setBackground(self._cell_color(value, diagonal=row == col))
+                        cell_color = self._cell_color(value, diagonal=row == col)
                         if row < col:
                             abs_value = abs(value)
                             if abs_value > best_abs_value:
                                 best_abs_value = abs_value
                                 best_pair = (row_name, col_name, value)
                                 best_pair_index = (row, col)
+                    item.setBackground(cell_color)
+                    item.setForeground(self._foreground_for_background(cell_color))
 
                     if valid_counts is not None:
                         count = int(valid_counts[row, col])
@@ -142,18 +149,51 @@ if QtWidgets is not None:
                 self._show_scatter_for_pair(best_pair_index[0], best_pair_index[1])
 
         def _cell_color(self, value: float, diagonal: bool = False):
-            if diagonal:
-                return QtGui.QColor("#dbeafe")
-            strength = min(abs(value), 1.0)
-            if value >= 0.0:
-                red = int(245 - 80 * strength)
-                green = int(250 - 50 * strength)
-                blue = 255
+            if self._dark_theme_active():
+                if diagonal:
+                    return QtGui.QColor("#1b262d")
+                strength = min(abs(value), 1.0)
+                base_red, base_green, base_blue = 27, 38, 45
+                if value >= 0.0:
+                    red = int(base_red + (69 - base_red) * strength)
+                    green = int(base_green + (208 - base_green) * strength)
+                    blue = int(base_blue + (188 - base_blue) * strength)
+                    return QtGui.QColor(red, green, blue)
+                red = int(base_red + (255 - base_red) * strength)
+                green = int(base_green + (107 - base_green) * strength)
+                blue = int(base_blue + (107 - base_blue) * strength)
                 return QtGui.QColor(red, green, blue)
-            red = 255
-            green = int(245 - 70 * strength)
-            blue = int(240 - 90 * strength)
+
+            if diagonal:
+                return QtGui.QColor("#f5efe6")
+            strength = min(abs(value), 1.0)
+            base_red, base_green, base_blue = 255, 253, 248
+            if value >= 0.0:
+                red = int(base_red + (69 - base_red) * strength)
+                green = int(base_green + (174 - base_green) * strength)
+                blue = int(base_blue + (160 - base_blue) * strength)
+                return QtGui.QColor(red, green, blue)
+            red = int(base_red + (236 - base_red) * strength)
+            green = int(base_green + (91 - base_green) * strength)
+            blue = int(base_blue + (91 - base_blue) * strength)
             return QtGui.QColor(red, green, blue)
+
+        def _nan_cell_color(self):
+            return QtGui.QColor("#131c22" if self._dark_theme_active() else "#f8f3ea")
+
+        def _dark_theme_active(self) -> bool:
+            if current_theme_id is None:
+                return True
+            app = QtWidgets.QApplication.instance()
+            return current_theme_id(app) == "night_shift"
+
+        @staticmethod
+        def _foreground_for_background(color):
+            red = color.redF()
+            green = color.greenF()
+            blue = color.blueF()
+            luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue
+            return QtGui.QBrush(QtGui.QColor("#f3f8fb" if luminance < 0.42 else "#102033"))
 
         def _on_current_cell_changed(self, current_row: int, current_col: int, _old_row: int, _old_col: int) -> None:
             self._show_scatter_for_pair(current_row, current_col)
@@ -200,7 +240,7 @@ if QtWidgets is not None:
             if self.scatter_plot is None:
                 return
 
-            color = "#2563eb" if row != col else "#0f766e"
+            color = "#78d5e3" if row != col else "#45d0bc"
             self._scatter_item = pg.ScatterPlotItem(
                 paired_left,
                 paired_right,
@@ -230,7 +270,7 @@ if QtWidgets is not None:
                     self.scatter_plot.plot(
                         [x_min, x_max],
                         [slope * x_min + intercept, slope * x_max + intercept],
-                        pen=pg.mkPen(color="#dc2626", width=2),
+                        pen=pg.mkPen(color="#ff6b6b", width=2),
                     )
 
         def _on_scatter_clicked(self, _item, points) -> None:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .theme import style_plot_widget
+
 try:
     from PyQt5 import QtCore, QtWidgets
 except ImportError:  # pragma: no cover - optional runtime dependency
@@ -190,13 +192,15 @@ if QtWidgets is not None:
                 return
             self.preview_plot.clear()
             self.preview_plot.addLegend()
+            style_plot_widget(self.preview_plot)
             self.preview_plot.setTitle("Waveform Preview")
             self.preview_plot.setLabel("bottom", "Time [s]")
             self.preview_plot.setLabel("left", "Amplitude")
             if primary:
-                self._plot_waveform_series(self.preview_plot, primary, "#2563eb")
+                self._plot_waveform_series(self.preview_plot, primary, "#78d5e3")
             if secondary:
-                self._plot_waveform_series(self.preview_plot, secondary, "#dc2626")
+                self._plot_waveform_series(self.preview_plot, secondary, "#ff6b6b")
+            style_plot_widget(self.preview_plot)
             self._set_preview_region(roi_bounds)
 
         def set_feature_rows(self, rows, *, feature_key: str, feature_label: str, info_text: str = "") -> None:
@@ -207,6 +211,7 @@ if QtWidgets is not None:
                 return
             self.feature_plot.clear()
             self.feature_plot.addLegend()
+            style_plot_widget(self.feature_plot)
             self.feature_plot.setTitle(f"Waveform Feature Trend | {feature_label}")
             self.feature_plot.setLabel("bottom", "Shot Index")
             self.feature_plot.setLabel("left", feature_label)
@@ -223,6 +228,7 @@ if QtWidgets is not None:
                 )
             if not self._feature_rows:
                 self.feature_plot.setTitle("Waveform Feature Trend")
+            style_plot_widget(self.feature_plot)
 
         def set_delay_series(self, sample_indices, delay_values, *, summary_text: str = "") -> None:
             if summary_text:
@@ -231,6 +237,7 @@ if QtWidgets is not None:
                 return
             self.delay_plot.clear()
             self.delay_plot.addLegend()
+            style_plot_widget(self.delay_plot)
             self.delay_plot.setTitle("Waveform Delay Trend")
             self.delay_plot.setLabel("bottom", "Shot Index")
             self.delay_plot.setLabel("left", "Delay [s]")
@@ -241,11 +248,12 @@ if QtWidgets is not None:
                 self.delay_plot.plot(
                     plot_x,
                     plot_y,
-                    pen=pg.mkPen(color="#0f766e", width=2),
+                    pen=pg.mkPen(color="#45d0bc", width=2),
                     symbol="o",
                     symbolSize=5,
                     name="Delay",
                 )
+            style_plot_widget(self.delay_plot)
 
         def _plot_waveform_series(self, plot_widget, payload, color: str) -> None:
             x_values = list(payload.get("x_values", []))
@@ -273,8 +281,8 @@ if QtWidgets is not None:
                 values=(float(start_sec), float(stop_sec)),
                 orientation="vertical",
                 movable=False,
-                brush=pg.mkBrush(59, 130, 246, 40),
-                pen=pg.mkPen(color="#2563eb", width=1),
+                brush=pg.mkBrush(120, 213, 227, 40),
+                pen=pg.mkPen(color="#78d5e3", width=1),
             )
             self._preview_region.setZValue(-5)
             self.preview_plot.addItem(self._preview_region)

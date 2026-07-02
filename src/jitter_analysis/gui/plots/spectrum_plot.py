@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from .theme import style_plot_widget
 from .visibility import resolve_initial_visibility
 
 try:
@@ -100,6 +101,7 @@ if QtWidgets is not None:
                 return
             self.plot_widget.clear()
             self.plot_widget.addLegend()
+            style_plot_widget(self.plot_widget)
             self.plot_widget.setTitle("Spectrum")
             self.plot_widget.setLabel("left", "Amplitude")
 
@@ -202,6 +204,7 @@ if QtWidgets is not None:
                 if self.plot_widget is not None:
                     self.plot_widget.clear()
                     self.plot_widget.addLegend()
+                    style_plot_widget(self.plot_widget)
                     self.plot_widget.setTitle("Spectrum")
                     self.plot_widget.setLabel("bottom", "Frequency [Hz]")
                     self.plot_widget.setLabel("left", "Amplitude" if mode != "welch_psd" else "PSD")
@@ -235,6 +238,7 @@ if QtWidgets is not None:
                 if self.plot_widget is not None:
                     self.plot_widget.clear()
                     self.plot_widget.addLegend()
+                    style_plot_widget(self.plot_widget)
                     self.plot_widget.setTitle("Spectrum")
                     self.plot_widget.setLabel("bottom", "Frequency [Hz]")
                     self.plot_widget.setLabel("left", "Amplitude" if mode != "welch_psd" else "PSD")
@@ -248,6 +252,7 @@ if QtWidgets is not None:
             if self.plot_widget is not None:
                 self.plot_widget.clear()
                 self.plot_widget.addLegend()
+                style_plot_widget(self.plot_widget)
                 if mode == "welch_psd":
                     self.plot_widget.setTitle("Power Spectral Density")
                     self.plot_widget.setLabel("left", "PSD")
@@ -300,6 +305,9 @@ if QtWidgets is not None:
                 peak_summaries.append(
                     f"{name}: {peak_frequency:.6g} Hz @ {peak_value:.6g}"
                 )
+
+            if self.plot_widget is not None:
+                style_plot_widget(self.plot_widget)
 
             self.summary_table.setHorizontalHeaderLabels(
                 ["PV", "Samples", "dt [s]", "Window", "Seg", "Peak f [Hz]", peak_label, "Unit"]

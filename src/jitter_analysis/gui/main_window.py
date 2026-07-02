@@ -95,7 +95,7 @@ if __package__ in {None, ""}:
     from jitter_analysis.gui.plots.response_plot import ResponsePlot
     from jitter_analysis.gui.plots.sensitivity_plot import SensitivityPlot
     from jitter_analysis.gui.plots.spectrum_plot import SpectrumPlot
-    from jitter_analysis.gui.plots.theme import apply_plot_theme
+    from jitter_analysis.gui.plots.theme import apply_plot_theme, style_plot_widgets_in_tree
     from jitter_analysis.gui.theme import apply_app_theme, current_theme_id, theme_label
     from jitter_analysis.gui.plots.trend_plot import TrendPlot
     from jitter_analysis.gui.plots.waveform_plot import WaveformPlot
@@ -185,7 +185,7 @@ else:
     from .plots.response_plot import ResponsePlot
     from .plots.sensitivity_plot import SensitivityPlot
     from .plots.spectrum_plot import SpectrumPlot
-    from .plots.theme import apply_plot_theme
+    from .plots.theme import apply_plot_theme, style_plot_widgets_in_tree
     from .theme import apply_app_theme, current_theme_id, theme_label
     from .plots.trend_plot import TrendPlot
     from .plots.waveform_plot import WaveformPlot
@@ -255,8 +255,9 @@ class MainWindow(_MainWindowBase):
         self._pending_waveform_analysis_signature = None
         apply_plot_theme(current_theme_id(QtWidgets.QApplication.instance()))
         self.setWindowTitle("Jitter Analysis")
-        self.resize(1400, 900)
+        self.resize(1540, 900)
         self._build_ui()
+        self._apply_plot_widget_theme(current_theme_id(QtWidgets.QApplication.instance()))
         self._wire_actions()
         self._try_load_default_config()
 
@@ -307,8 +308,12 @@ class MainWindow(_MainWindowBase):
         self._build_menu_bar()
 
         central = QtWidgets.QWidget()
+        central.setObjectName("appShell")
         root_layout = QtWidgets.QVBoxLayout(central)
+        root_layout.setContentsMargins(12, 12, 12, 12)
+        root_layout.setSpacing(10)
         self.scan_panel = ScanPanel()
+        self._create_run_action_buttons()
         self.main_tabs = QtWidgets.QTabWidget()
         self.main_tabs.setObjectName("workspaceTabs")
         self.main_tabs.setDocumentMode(True)
@@ -317,7 +322,6 @@ class MainWindow(_MainWindowBase):
         set_draw_base = getattr(self.main_tabs.tabBar(), "setDrawBase", None)
         if callable(set_draw_base):
             set_draw_base(False)
-        self.main_tabs.setCornerWidget(self._build_theme_toggle_button(), QtCore.Qt.TopRightCorner)
         self.config_tab_index = self.main_tabs.addTab(self._build_config_tab(), "Config")
         self.run_tab_index = self.main_tabs.addTab(self._build_run_tab(), "Run")
         self.analysis_page_index = self.main_tabs.addTab(self._build_analysis_page(), "Analysis")
@@ -327,9 +331,18 @@ class MainWindow(_MainWindowBase):
         self.log_view.setReadOnly(True)
         self.log_view.setPlaceholderText("Warnings, caput results, timeout, disconnected PVs")
         self.log_view.setMaximumBlockCount(1000)
+        self.log_toggle_button = self._build_log_toggle_button()
 
-        root_layout.addWidget(self.main_tabs, 1)
-        root_layout.addWidget(self._build_log_section())
+        workspace_frame = QtWidgets.QFrame()
+        workspace_frame.setObjectName("workspaceFrame")
+        workspace_layout = QtWidgets.QVBoxLayout(workspace_frame)
+        workspace_layout.setContentsMargins(10, 10, 10, 10)
+        workspace_layout.setSpacing(8)
+        workspace_layout.addWidget(self.main_tabs, 1)
+        workspace_layout.addWidget(self._build_log_section())
+
+        root_layout.addWidget(self._build_app_header())
+        root_layout.addWidget(workspace_frame, 1)
         self.setCentralWidget(central)
         self._sync_theme_actions()
         self.append_log("Application scaffold initialized")
@@ -345,12 +358,80 @@ class MainWindow(_MainWindowBase):
         self.theme_toggle_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextOnly)
         self.theme_toggle_button.setAutoRaise(False)
         self.theme_toggle_button.setCursor(QtCore.Qt.PointingHandCursor)
-        self.theme_toggle_button.setFixedSize(34, 34)
+        self.theme_toggle_button.setFixedSize(32, 32)
         button_font = self.theme_toggle_button.font()
         button_font.setPointSize(max(int(button_font.pointSize()), 13))
         self.theme_toggle_button.setFont(button_font)
         self.theme_toggle_button.clicked.connect(self._toggle_gui_theme)
         return self.theme_toggle_button
+
+    def _build_log_toggle_button(self):
+        button = QtWidgets.QToolButton(self)
+        button.setObjectName("logToggleButton")
+        button.setText("Log")
+        button.setCheckable(True)
+        button.setChecked(False)
+        button.setToolButtonStyle(QtCore.Qt.ToolButtonTextOnly)
+        button.setAutoRaise(False)
+        button.setCursor(QtCore.Qt.PointingHandCursor)
+        button.setFixedSize(44, 32)
+        button.setToolTip("Show log")
+        button.setAccessibleName("Show log")
+        button.toggled.connect(self._toggle_log_view)
+        return button
+
+    def _create_run_action_buttons(self) -> None:
+        self.run_check_button = QtWidgets.QPushButton("Check EPICS")
+        self.run_start_button = QtWidgets.QPushButton("Start")
+        self.run_stop_button = QtWidgets.QPushButton("Stop")
+        button_specs = (
+            (self.run_check_button, 112, "info"),
+            (self.run_start_button, 82, "control"),
+            (self.run_stop_button, 82, "danger"),
+        )
+        for button, width, tone in button_specs:
+            button.setFixedSize(width, 30)
+            button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+            button.setProperty("role", "statusAction")
+            button.setProperty("tone", tone)
+            button.setStyleSheet("")
+            button.style().unpolish(button)
+            button.style().polish(button)
+
+    def _build_run_status_controls(self):
+        controls = QtWidgets.QWidget()
+        controls.setObjectName("runStatusControls")
+        layout = QtWidgets.QHBoxLayout(controls)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        layout.addWidget(self.run_check_button)
+        layout.addWidget(self.run_start_button)
+        layout.addWidget(self.run_stop_button)
+        return controls
+
+    def _build_app_header(self):
+        header = QtWidgets.QFrame()
+        header.setObjectName("appHeader")
+        layout = QtWidgets.QHBoxLayout(header)
+        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setSpacing(12)
+
+        title_column = QtWidgets.QVBoxLayout()
+        title_column.setContentsMargins(0, 0, 0, 0)
+        title_column.setSpacing(2)
+
+        app_title = QtWidgets.QLabel("Jitter Analysis")
+        app_title.setObjectName("appTitle")
+        app_subtitle = QtWidgets.QLabel("Status: Development / Internal Use  |  PV jitter workspace")
+        app_subtitle.setObjectName("appSubtitle")
+
+        title_column.addWidget(app_title)
+        title_column.addWidget(app_subtitle)
+        layout.addLayout(title_column, 1)
+
+        layout.addWidget(self.log_toggle_button, 0, QtCore.Qt.AlignVCenter)
+        layout.addWidget(self._build_theme_toggle_button(), 0, QtCore.Qt.AlignVCenter)
+        return header
 
     def _apply_action_button_role(self, button, role: str) -> None:
         button.setProperty("role", role)
@@ -372,8 +453,12 @@ class MainWindow(_MainWindowBase):
         app = QtWidgets.QApplication.instance()
         apply_app_theme(app, theme_id)
         apply_plot_theme(theme_id)
+        self._apply_plot_widget_theme(theme_id)
         self._sync_theme_actions()
         self.append_log(f"GUI theme set to {theme_label(theme_id)}.")
+
+    def _apply_plot_widget_theme(self, theme_id: str | None = None) -> None:
+        style_plot_widgets_in_tree(self, theme_id)
 
     def _sync_theme_actions(self) -> None:
         active_theme_id = current_theme_id(QtWidgets.QApplication.instance())
@@ -393,7 +478,7 @@ class MainWindow(_MainWindowBase):
 
     def _build_left_panel(self):
         panel = QtWidgets.QWidget()
-        panel.setMinimumWidth(340)
+        panel.setMinimumWidth(390)
         panel.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
         layout = QtWidgets.QVBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -401,6 +486,7 @@ class MainWindow(_MainWindowBase):
 
         self.config_panel = ConfigPanel()
         self.object_panel = ObjectPanel()
+        self._apply_panel_button_roles()
 
         run_info_box = self._wrap_setup_section("Run Info", self.config_panel)
         pv_selection_box = self._wrap_setup_section("PV Selection", self.object_panel)
@@ -410,6 +496,19 @@ class MainWindow(_MainWindowBase):
         layout.addWidget(run_info_box, 1)
         layout.addWidget(pv_selection_box, 1)
         return panel
+
+    def _apply_panel_button_roles(self) -> None:
+        for button in (
+            self.config_panel.load_button,
+            self.config_panel.load_setup_button,
+            self.config_panel.save_setup_button,
+            self.config_panel.save_dir_browse_button,
+            self.object_panel.select_button,
+        ):
+            self._apply_action_button_role(button, "diagnostic")
+            button.setMinimumHeight(40)
+        self._apply_action_button_role(self.object_panel.clear_button, "danger")
+        self.object_panel.clear_button.setMinimumHeight(40)
 
     def _build_mode_switcher(self):
         box = QtWidgets.QWidget()
@@ -485,7 +584,7 @@ class MainWindow(_MainWindowBase):
         splitter.addWidget(self._build_task_setup_group())
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
-        splitter.setSizes([360, 1040])
+        splitter.setSizes([400, 1000])
         layout.addWidget(splitter, 1)
         return container
 
@@ -497,30 +596,11 @@ class MainWindow(_MainWindowBase):
 
         box = self._create_section_group("Run")
         inner = QtWidgets.QVBoxLayout(box)
-        inner.addWidget(
-            self._create_page_hint(
-                "Start or stop the run here and watch the live trend update in real time."
-            )
-        )
-
-        controls_row = QtWidgets.QHBoxLayout()
-        controls_row.setSpacing(8)
-        self.run_check_button = QtWidgets.QPushButton("Check EPICS")
-        self.run_start_button = QtWidgets.QPushButton("Start")
-        self.run_stop_button = QtWidgets.QPushButton("Stop")
-        self.run_check_button.setMinimumHeight(34)
-        self.run_start_button.setMinimumHeight(36)
-        self.run_stop_button.setMinimumHeight(34)
-        self._apply_action_button_role(self.run_check_button, "subtle")
-        self._apply_action_button_role(self.run_start_button, "primary")
-        self._apply_action_button_role(self.run_stop_button, "danger")
-        controls_row.addWidget(self.run_check_button)
-        controls_row.addWidget(self.run_start_button)
-        controls_row.addWidget(self.run_stop_button)
-        controls_row.addStretch(1)
-        inner.addLayout(controls_row)
+        inner.setContentsMargins(12, 14, 12, 12)
+        inner.setSpacing(10)
 
         self.status_panel = StatusPanel()
+        self.status_panel.add_trailing_widget(self._build_run_status_controls())
         inner.addWidget(self.status_panel)
 
         self.trend_plot = TrendPlot()
@@ -534,25 +614,25 @@ class MainWindow(_MainWindowBase):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        box = self._create_section_group("Analysis")
+        box = QtWidgets.QFrame()
+        box.setObjectName("analysisSection")
         inner = QtWidgets.QVBoxLayout(box)
-        header = QtWidgets.QHBoxLayout()
-        header.addStretch(1)
-        self.analysis_axis_label = QtWidgets.QLabel("Single Knob X Axis")
-        header.addWidget(self.analysis_axis_label, 0)
-        self.analysis_axis_combo = QtWidgets.QComboBox()
-        self.analysis_axis_combo.addItem("Readback", "readback")
-        self.analysis_axis_combo.addItem("Target", "target")
-        self.analysis_axis_combo.setToolTip(
-            "Choose whether Single Knob response and sensitivity use knob readback or target values on the x-axis."
-        )
-        header.addWidget(self.analysis_axis_combo, 0)
-        self.analysis_outlier_filter_panel = self._build_analysis_outlier_filter_panel()
-        header.addWidget(self.analysis_outlier_filter_panel, 0)
-        self.analysis_open_run_button = QtWidgets.QPushButton("Run Browser...")
-        self._apply_action_button_role(self.analysis_open_run_button, "subtle")
-        header.addWidget(self.analysis_open_run_button, 0)
-        inner.addLayout(header)
+        inner.setContentsMargins(12, 10, 12, 12)
+        inner.setSpacing(10)
+
+        section_header = QtWidgets.QHBoxLayout()
+        section_header.setContentsMargins(4, 0, 0, 0)
+        section_header.setSpacing(8)
+        section_title = QtWidgets.QLabel("Analysis")
+        section_title.setObjectName("analysisSectionTitle")
+        section_header.addWidget(section_title, 0, QtCore.Qt.AlignVCenter)
+        section_header.addStretch(1)
+        self.analysis_open_run_button = QtWidgets.QPushButton("Run Browser")
+        self._apply_action_button_role(self.analysis_open_run_button, "diagnostic")
+        self.analysis_open_run_button.setProperty("compactControl", "true")
+        self.analysis_open_run_button.setFixedSize(128, 28)
+        section_header.addWidget(self.analysis_open_run_button, 0, QtCore.Qt.AlignVCenter)
+        inner.addLayout(section_header)
 
         self.analysis_tabs = QtWidgets.QTabWidget()
         self.analysis_tabs.setObjectName("analysisTabs")
@@ -568,6 +648,25 @@ class MainWindow(_MainWindowBase):
             set_analysis_draw_base(False)
         analysis_tab_bar.setElideMode(QtCore.Qt.ElideNone)
         analysis_tab_bar.setExpanding(True)
+
+        corner = QtWidgets.QWidget()
+        corner_layout = QtWidgets.QHBoxLayout(corner)
+        corner_layout.setContentsMargins(8, 0, 0, 0)
+        corner_layout.setSpacing(8)
+        self.analysis_axis_label = QtWidgets.QLabel("X Axis")
+        self.analysis_axis_label.setProperty("role", "field")
+        corner_layout.addWidget(self.analysis_axis_label, 0)
+        self.analysis_axis_combo = QtWidgets.QComboBox()
+        self.analysis_axis_combo.addItem("Readback", "readback")
+        self.analysis_axis_combo.addItem("Target", "target")
+        self.analysis_axis_combo.setFixedHeight(32)
+        self.analysis_axis_combo.setMinimumWidth(118)
+        self.analysis_axis_combo.setToolTip(
+            "Choose whether Single Knob response and sensitivity use knob readback or target values on the x-axis."
+        )
+        corner_layout.addWidget(self.analysis_axis_combo, 0)
+        self.analysis_tabs.setCornerWidget(corner, QtCore.Qt.TopRightCorner)
+
         self.response_plot = ResponsePlot()
         self.response_tab_index = self.analysis_tabs.addTab(self.response_plot, "Response")
         self.waveform_plot = WaveformPlot()
@@ -593,17 +692,19 @@ class MainWindow(_MainWindowBase):
 
     def _build_analysis_outlier_filter_panel(self):
         frame = QtWidgets.QWidget()
+        frame.setObjectName("analysisOutlierFilterPanel")
+        frame.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         layout = QtWidgets.QHBoxLayout(frame)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
+        layout.setSpacing(8)
 
         self.jitter_outlier_filter_check = QtWidgets.QCheckBox("Filter Outliers")
+        self.jitter_outlier_filter_check.setFixedHeight(28)
         self.jitter_outlier_filter_check.setToolTip(
             "Monitor only. Exclude extreme points from Jitter, Correlation, and Spectrum using a robust "
             "z-score computed from the series median and MAD."
         )
         layout.addWidget(self.jitter_outlier_filter_check, 0)
-        layout.addWidget(QtWidgets.QLabel("Threshold"), 0)
         self.jitter_outlier_filter_spin = QtWidgets.QDoubleSpinBox()
         self.jitter_outlier_filter_spin.setRange(0.5, 1000.0)
         self.jitter_outlier_filter_spin.setDecimals(1)
@@ -611,6 +712,8 @@ class MainWindow(_MainWindowBase):
         self.jitter_outlier_filter_spin.setSingleStep(0.5)
         self.jitter_outlier_filter_spin.setSuffix(" sigma")
         self.jitter_outlier_filter_spin.setEnabled(False)
+        self.jitter_outlier_filter_spin.setFixedHeight(28)
+        self.jitter_outlier_filter_spin.setMinimumWidth(118)
         self.jitter_outlier_filter_spin.setToolTip(
             "Monitor only. Points whose robust z-score exceeds this threshold are excluded from "
             "Jitter, Correlation, and Spectrum."
@@ -630,42 +733,6 @@ class MainWindow(_MainWindowBase):
         frame = QtWidgets.QFrame()
         frame.setObjectName("modeStatusBanner")
         frame.setProperty("tone", "subtle")
-        frame.setStyleSheet(
-            """
-            QFrame#modeStatusBanner {
-                border-radius: 12px;
-                padding: 0;
-            }
-            QFrame#modeStatusBanner[tone="subtle"] {
-                background: #f8fafc;
-                border: 1px solid #dbe3ee;
-            }
-            QFrame#modeStatusBanner[tone="info"] {
-                background: #eff6ff;
-                border: 1px solid #bfdbfe;
-            }
-            QFrame#modeStatusBanner[tone="success"] {
-                background: #ecfdf5;
-                border: 1px solid #86efac;
-            }
-            QFrame#modeStatusBanner[tone="warning"] {
-                background: #fffbeb;
-                border: 1px solid #fcd34d;
-            }
-            QLabel[role="title"] {
-                font-size: 13px;
-                font-weight: 700;
-                color: #111827;
-            }
-            QLabel[role="message"] {
-                color: #334155;
-            }
-            QLabel[role="context"] {
-                color: #64748b;
-                font-size: 12px;
-            }
-            """
-        )
         layout = QtWidgets.QVBoxLayout(frame)
         layout.setContentsMargins(12, 10, 12, 10)
         layout.setSpacing(4)
@@ -687,6 +754,8 @@ class MainWindow(_MainWindowBase):
     def _build_jitter_summary(self):
         widget = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
         self.jitter_table = QtWidgets.QTableWidget(0, 9)
         self.jitter_table.setHorizontalHeaderLabels(
             ["PV", "Count", "Mean", "Std", "Jitter RMS", "P2P", "Min", "Max", "Unit"]
@@ -695,11 +764,32 @@ class MainWindow(_MainWindowBase):
         self.jitter_table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         self.jitter_table.setAlternatingRowColors(True)
         self.jitter_table.verticalHeader().setVisible(False)
-        self.jitter_table.horizontalHeader().setStretchLastSection(True)
+        self._apply_jitter_table_column_layout()
         layout.addWidget(self.jitter_table)
         self.jitter_plot = JitterPlot()
+        self.analysis_outlier_filter_panel = self._build_analysis_outlier_filter_panel()
+        self.jitter_plot.add_trailing_control_widget(self.analysis_outlier_filter_panel)
         layout.addWidget(self.jitter_plot, 1)
         return widget
+
+    def _apply_jitter_table_column_layout(self) -> None:
+        header = self.jitter_table.horizontalHeader()
+        header.setStretchLastSection(False)
+        header.setMinimumSectionSize(54)
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+        fixed_widths = {
+            1: 70,
+            2: 92,
+            3: 86,
+            4: 104,
+            5: 80,
+            6: 82,
+            7: 82,
+            8: 64,
+        }
+        for column, width in fixed_widths.items():
+            header.setSectionResizeMode(column, QtWidgets.QHeaderView.Fixed)
+            self.jitter_table.setColumnWidth(column, width)
 
     def _build_placeholder(self, text: str):
         widget = QtWidgets.QWidget()
@@ -716,25 +806,22 @@ class MainWindow(_MainWindowBase):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
-        self.log_toggle_button = QtWidgets.QToolButton()
-        self.log_toggle_button.setText("Show Log")
-        self.log_toggle_button.setCheckable(True)
-        self.log_toggle_button.setChecked(False)
-        self.log_toggle_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextOnly)
-        self.log_toggle_button.toggled.connect(self._toggle_log_view)
-
         self.log_container = QtWidgets.QWidget()
         log_layout = QtWidgets.QVBoxLayout(self.log_container)
         log_layout.setContentsMargins(0, 0, 0, 0)
         log_layout.addWidget(self.log_view)
         self.log_container.setVisible(False)
 
-        layout.addWidget(self.log_toggle_button)
         layout.addWidget(self.log_container)
         return widget
 
     def _toggle_log_view(self, visible: bool) -> None:
-        self.log_toggle_button.setText("Hide Log" if visible else "Show Log")
+        self.log_toggle_button.setText("Log")
+        self.log_toggle_button.setToolTip("Hide log" if visible else "Show log")
+        self.log_toggle_button.setAccessibleName("Hide log" if visible else "Show log")
+        self.log_toggle_button.setProperty("active", "true" if visible else "false")
+        self.log_toggle_button.style().unpolish(self.log_toggle_button)
+        self.log_toggle_button.style().polish(self.log_toggle_button)
         self.log_container.setVisible(visible)
 
     def append_log(self, message: str) -> None:
@@ -1798,7 +1885,8 @@ class MainWindow(_MainWindowBase):
 
         self.run_check_button.setText(self.action_connect_epics.text())
         self.run_start_button.setText(self.action_start.text())
-        self.run_stop_button.setText(self.action_stop.text())
+        self.run_stop_button.setText("Stop")
+        self.run_stop_button.setToolTip(self.action_stop.text())
 
         self.object_panel.select_button.setEnabled(loaded and not running)
         self.action_connect_epics.setEnabled(loaded and has_selection and not running)
@@ -1855,7 +1943,7 @@ class MainWindow(_MainWindowBase):
             message = next_step
         else:
             tone = "warning"
-            title = f"{self._mode_display_name(mode)} needs one more step"
+            title = "Next step"
             message = next_step
 
         self.mode_status_title_label.setText(title)
@@ -3442,7 +3530,7 @@ class MainWindow(_MainWindowBase):
                     item.setData(QtCore.Qt.UserRole, pv_id)
                 item.setToolTip(tooltip)
                 self.jitter_table.setItem(row_index, col_index, item)
-        self.jitter_table.resizeColumnsToContents()
+        self._apply_jitter_table_column_layout()
         self._update_jitter_filter_status(total_removed=total_removed, affected_variables=affected_variables)
         current_pv_ids = self.jitter_plot.current_pv_ids()
         focused_pv_id = self.jitter_plot.focused_pv_id()
