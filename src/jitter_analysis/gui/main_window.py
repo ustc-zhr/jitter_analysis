@@ -503,10 +503,6 @@ class MainWindow(_MainWindowBase):
         box = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(box)
         layout.setContentsMargins(0, 0, 0, 0)
-        hint = QtWidgets.QLabel("Select a task type.")
-        hint.setWordWrap(True)
-        hint.setProperty("role", "pageHint")
-        layout.addWidget(hint)
 
         row = QtWidgets.QHBoxLayout()
         self.mode_buttons = {}
@@ -525,21 +521,12 @@ class MainWindow(_MainWindowBase):
             button.setMinimumHeight(34)
             button.setCursor(QtCore.Qt.PointingHandCursor)
             button.setProperty("themeRole", "modeToggle")
+            button.setToolTip(self._mode_help_text(mode))
             row.addWidget(button)
             self.mode_buttons[mode] = button
             self.mode_button_group.addButton(button)
         layout.addLayout(row)
-        layout.addWidget(self._build_mode_compare_strip())
         return box
-
-    def _build_mode_compare_strip(self):
-        label = QtWidgets.QLabel(
-            "Monitor = read PVs only   |   Single Knob = one control PV   |   "
-            "Random Multi-Knob = many control PVs together"
-        )
-        label.setWordWrap(True)
-        label.setProperty("role", "pageHint")
-        return label
 
     def _create_section_group(self, title: str) -> QtWidgets.QGroupBox:
         box = QtWidgets.QGroupBox(title)
@@ -726,12 +713,12 @@ class MainWindow(_MainWindowBase):
         layout.setContentsMargins(12, 10, 12, 10)
         layout.setSpacing(4)
 
-        self.mode_status_title_label = QtWidgets.QLabel("Task Guidance")
+        self.mode_status_title_label = QtWidgets.QLabel("Setup status")
         self.mode_status_title_label.setProperty("role", "title")
-        self.mode_status_message_label = QtWidgets.QLabel("Load a PV library to begin.")
+        self.mode_status_message_label = QtWidgets.QLabel("Load a PV library.")
         self.mode_status_message_label.setWordWrap(True)
         self.mode_status_message_label.setProperty("role", "message")
-        self.mode_status_context_label = QtWidgets.QLabel("New runs will be saved under runs.")
+        self.mode_status_context_label = QtWidgets.QLabel()
         self.mode_status_context_label.setWordWrap(True)
         self.mode_status_context_label.setProperty("role", "context")
 
@@ -1982,36 +1969,36 @@ class MainWindow(_MainWindowBase):
     def _update_mode_status_banner(self, mode: str, ready: bool, next_step: str) -> None:
         if self.state.run_status == RunStatus.RUNNING:
             tone = "info"
-            title = f"{self._mode_display_name(mode)} in progress"
-            message = "The current run is active. Use Stop before changing PV selection, mode, or setup."
+            title = f"{self._mode_display_name(mode)} running"
+            message = "Stop the run before changing its setup."
         elif self._viewing_saved_run and self.current_run_metadata is not None:
             tone = "info"
-            title = "Saved run loaded"
+            title = "Saved run"
             message = (
-                f"Offline analysis is showing run {self.current_run_metadata.run_id} "
-                f"in {self._mode_display_name(self._mode_key_from_run_mode(self.current_run_mode))} mode."
+                f"{self.current_run_metadata.run_id} | "
+                f"{self._mode_display_name(self._mode_key_from_run_mode(self.current_run_mode))}"
             )
         elif ready:
             tone = "success"
-            title = f"{self._mode_display_name(mode)} is ready"
+            title = "Ready"
             message = next_step
         elif self.loaded_config is None:
             tone = "subtle"
-            title = "Load the PV library first"
+            title = "PV library required"
             message = next_step
         else:
             tone = "warning"
-            title = "Next step"
+            title = "Setup incomplete"
             message = next_step
 
         self.mode_status_title_label.setText(title)
         self.mode_status_message_label.setText(message)
         if self._viewing_saved_run and self.current_run_metadata is not None:
-            context = f"Offline run source: {self.current_run_metadata.run_id}"
+            context = f"Source: {self.current_run_metadata.run_id}"
         else:
-            save_dir = self.config_panel.save_dir_edit.text().strip() or "runs"
-            context = f"New runs will be saved under: {save_dir}"
+            context = ""
         self.mode_status_context_label.setText(context)
+        self.mode_status_context_label.setVisible(bool(context))
         self.mode_status_title_label.parentWidget().setProperty("tone", tone)
         self.mode_status_title_label.parentWidget().style().unpolish(self.mode_status_title_label.parentWidget())
         self.mode_status_title_label.parentWidget().style().polish(self.mode_status_title_label.parentWidget())
