@@ -87,20 +87,19 @@ if QtWidgets is not None:
             widget = QtWidgets.QWidget()
             layout = QtWidgets.QVBoxLayout(widget)
             layout.setContentsMargins(0, 0, 0, 0)
-            layout.setSpacing(10)
+            layout.setSpacing(0)
 
-            self.single_intro_label = QtWidgets.QLabel(
-                "<b>Single Knob</b> moves only one control PV at a time. "
-                "Use it for response curves, one-variable scans, and sensitivity checks."
-            )
-            self.single_intro_label.setWordWrap(True)
-            self.single_intro_label.setProperty("role", "pageHint")
-            layout.addWidget(self.single_intro_label)
+            form_frame = QtWidgets.QFrame()
+            form_frame.setObjectName("singleKnobForm")
+            form_layout = QtWidgets.QVBoxLayout(form_frame)
+            form_layout.setContentsMargins(14, 12, 14, 12)
+            form_layout.setSpacing(10)
 
-            knob_box = self._create_page_section("Active Knob")
-            top_form = QtWidgets.QFormLayout(knob_box)
-            self._configure_form_layout(top_form)
+            active_title = QtWidgets.QLabel("Active Knob")
+            active_title.setProperty("role", "formSectionTitle")
+            form_layout.addWidget(active_title)
             self.active_knob_combo = QtWidgets.QComboBox()
+            self.active_knob_combo.setObjectName("activeKnobCombo")
             self.active_knob_combo.setEditable(True)
             self.active_knob_combo.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
             self.active_knob_combo.setSizeAdjustPolicy(
@@ -113,20 +112,47 @@ if QtWidgets is not None:
                 completer.setFilterMode(QtCore.Qt.MatchContains)
                 completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
 
+            self.active_knob_dropdown_button = QtWidgets.QToolButton()
+            self.active_knob_dropdown_button.setObjectName("activeKnobDropdownButton")
+            self.active_knob_dropdown_button.setText("\u25be")
+            self.active_knob_dropdown_button.setToolTip("Show selected control PVs")
+            self.active_knob_dropdown_button.setAccessibleName("Show control PV list")
+            self.active_knob_dropdown_button.setFixedWidth(36)
+            self.active_knob_dropdown_button.setFocusPolicy(QtCore.Qt.NoFocus)
+            self.active_knob_dropdown_button.clicked.connect(self.active_knob_combo.showPopup)
+
+            self.active_knob_combo.setFixedHeight(32)
+            self.active_knob_dropdown_button.setFixedHeight(32)
+
+            active_knob_control = QtWidgets.QWidget()
+            active_knob_control_layout = QtWidgets.QHBoxLayout(active_knob_control)
+            active_knob_control_layout.setContentsMargins(0, 0, 0, 0)
+            active_knob_control_layout.setSpacing(0)
+            active_knob_control_layout.addWidget(self.active_knob_combo, 1)
+            active_knob_control_layout.addWidget(self.active_knob_dropdown_button)
+
             self.active_knob_summary_label = QtWidgets.QLabel("No active control PV selected")
             self.active_knob_summary_label.setWordWrap(True)
             self.single_scope_label = QtWidgets.QLabel(
                 "Writes: only the active control PV. Other selected control PVs stay fixed."
             )
             self.single_scope_label.setWordWrap(True)
+            self.single_scope_label.setProperty("role", "context")
 
             self.scan_value_mode_combo = QtWidgets.QComboBox()
             self.scan_value_mode_combo.addItem("Manual List", "manual")
             self.scan_value_mode_combo.addItem("Start / Stop / Step", "range_step")
             self.scan_value_mode_combo.addItem("Start / Stop / Num Points", "range_points")
             self.scan_value_mode_combo.addItem("Symmetric Around Current", "symmetric_points")
+            self.scan_value_mode_combo.setCurrentIndex(
+                self.scan_value_mode_combo.findData("symmetric_points")
+            )
 
             self.scan_value_stack = QtWidgets.QStackedWidget()
+            self.scan_value_stack.setSizePolicy(
+                QtWidgets.QSizePolicy.Expanding,
+                QtWidgets.QSizePolicy.Fixed,
+            )
             self.manual_page = self._build_manual_scan_value_page()
             self.range_step_page = self._build_range_step_page()
             self.range_points_page = self._build_range_points_page()
@@ -138,59 +164,67 @@ if QtWidgets is not None:
 
             self.step_sample_spin = QtWidgets.QSpinBox()
             self.step_sample_spin.setRange(1, 1000000)
-            self.step_sample_spin.setValue(20)
-
-            top_form.addRow("Active Control PV", self.active_knob_combo)
-            top_form.addRow("", self.active_knob_summary_label)
-            top_form.addRow("", self.single_scope_label)
-            layout.addWidget(knob_box)
-
-            points_box = self._create_page_section("Scan Points")
-            points_form = QtWidgets.QFormLayout(points_box)
-            self._configure_form_layout(points_form)
-            points_form.addRow("Point Generator", self.scan_value_mode_combo)
-            points_form.addRow("Generated Points", self.scan_value_stack)
-            points_form.addRow("Samples / Point", self.step_sample_spin)
-            layout.addWidget(points_box)
-
-            advanced_box = self._create_page_section("Acquisition")
-            advanced_form = QtWidgets.QFormLayout(advanced_box)
-            self._configure_form_layout(advanced_form)
+            self.step_sample_spin.setValue(5)
             self.settle_spin = QtWidgets.QDoubleSpinBox()
             self.settle_spin.setRange(0.0, 3600.0)
-            self.settle_spin.setValue(0.5)
+            self.settle_spin.setValue(1.5)
             self.scan_sample_interval_spin = QtWidgets.QDoubleSpinBox()
             self.scan_sample_interval_spin.setRange(0.0, 3600.0)
             self.scan_sample_interval_spin.setValue(0.0)
             self.scan_sample_interval_spin.setDecimals(3)
             self.restore_check = QtWidgets.QCheckBox("Restore initial knob value after scan")
             self.restore_check.setChecked(True)
-            advanced_form.addRow("Settle Delay [s]", self.settle_spin)
-            advanced_form.addRow("Sample Interval [s]", self.scan_sample_interval_spin)
-            advanced_form.addRow("", self.restore_check)
-            layout.addWidget(advanced_box)
 
-            preview_box = self._create_page_section("Preview")
-            preview_layout = QtWidgets.QVBoxLayout(preview_box)
-            preview_layout.setContentsMargins(12, 12, 12, 12)
+            active_field = self._compact_field("Active Control PV", active_knob_control)
+            form_layout.addWidget(active_field)
+            form_layout.addWidget(self.active_knob_summary_label)
+            form_layout.addWidget(self.single_scope_label)
+            form_layout.addWidget(self._single_form_separator())
+
+            points_title = QtWidgets.QLabel("Scan Points")
+            points_title.setProperty("role", "formSectionTitle")
+            form_layout.addWidget(points_title)
+            points_row = QtWidgets.QHBoxLayout()
+            points_row.setSpacing(10)
+            generator_field = self._compact_field("Point Generator", self.scan_value_mode_combo)
+            generator_field.setFixedWidth(250)
+            points_row.addWidget(generator_field)
+            points_row.addWidget(self._compact_field("Scan Values", self.scan_value_stack), 1)
+            form_layout.addLayout(points_row)
+
+            acquisition_row = QtWidgets.QHBoxLayout()
+            acquisition_row.setSpacing(10)
+            acquisition_row.addWidget(self._compact_field("Samples / Point", self.step_sample_spin), 1)
+            acquisition_row.addWidget(self._compact_field("Settle Delay [s]", self.settle_spin), 1)
+            acquisition_row.addWidget(
+                self._compact_field("Sample Interval [s]", self.scan_sample_interval_spin), 1
+            )
+            form_layout.addLayout(acquisition_row)
+            form_layout.addWidget(self.restore_check)
+            form_layout.addWidget(self._single_form_separator())
+
+            preview_bar = QtWidgets.QFrame()
+            preview_bar.setObjectName("singlePreviewSummary")
+            preview_layout = QtWidgets.QHBoxLayout(preview_bar)
+            preview_layout.setContentsMargins(10, 7, 8, 7)
             preview_layout.setSpacing(8)
-            self.preview_refresh_button = QtWidgets.QPushButton("Refresh Preview")
-            self.preview_show_button = QtWidgets.QPushButton("Show Details")
-            self.preview_show_button.setEnabled(False)
-            self._apply_button_role(self.preview_refresh_button, "diagnostic")
-            self._apply_button_role(self.preview_show_button, "diagnostic")
-            preview_actions = QtWidgets.QHBoxLayout()
-            preview_actions.setSpacing(8)
-            preview_actions.addWidget(self.preview_refresh_button)
-            preview_actions.addWidget(self.preview_show_button)
-            preview_actions.addStretch(1)
             self.preview_summary_label = QtWidgets.QLabel(
                 "Choose a control PV to preview generated points."
             )
             self.preview_summary_label.setWordWrap(True)
-            preview_layout.addLayout(preview_actions)
-            preview_layout.addWidget(self.preview_summary_label)
-            layout.addWidget(preview_box)
+            self.preview_refresh_button = QtWidgets.QPushButton("Refresh Current")
+            self.preview_show_button = QtWidgets.QPushButton("Details")
+            self.preview_show_button.setEnabled(False)
+            self._apply_button_role(self.preview_refresh_button, "diagnostic")
+            self._apply_button_role(self.preview_show_button, "diagnostic")
+            self.preview_refresh_button.setMinimumHeight(32)
+            self.preview_show_button.setMinimumHeight(32)
+            preview_layout.addWidget(self.preview_summary_label, 1)
+            preview_layout.addWidget(self.preview_refresh_button)
+            preview_layout.addWidget(self.preview_show_button)
+            form_layout.addWidget(preview_bar)
+
+            layout.addWidget(form_frame)
             layout.addStretch(1)
 
             self.scan_value_mode_combo.currentIndexChanged.connect(self._update_scan_value_mode)
@@ -199,6 +233,26 @@ if QtWidgets is not None:
             )
             self._update_scan_value_mode()
             return widget
+
+        @staticmethod
+        def _compact_field(label_text: str, field):
+            container = QtWidgets.QWidget()
+            layout = QtWidgets.QVBoxLayout(container)
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(4)
+            label = QtWidgets.QLabel(label_text)
+            label.setProperty("role", "field")
+            layout.addWidget(label)
+            layout.addWidget(field)
+            return container
+
+        @staticmethod
+        def _single_form_separator():
+            separator = QtWidgets.QFrame()
+            separator.setObjectName("singleFormSeparator")
+            separator.setFrameShape(QtWidgets.QFrame.HLine)
+            separator.setFrameShadow(QtWidgets.QFrame.Plain)
+            return separator
 
         def _build_random_page(self):
             widget = QtWidgets.QWidget()
@@ -254,7 +308,7 @@ if QtWidgets is not None:
             self.random_point_count_spin.setValue(20)
             self.random_samples_per_point_spin = QtWidgets.QSpinBox()
             self.random_samples_per_point_spin.setRange(1, 1000000)
-            self.random_samples_per_point_spin.setValue(20)
+            self.random_samples_per_point_spin.setValue(5)
             form.addRow("Sampling Distribution", self.random_distribution_combo)
             form.addRow("", self.random_distribution_help_label)
             form.addRow("Random Points", self.random_point_count_spin)
@@ -267,7 +321,7 @@ if QtWidgets is not None:
             self.random_settle_spin = QtWidgets.QDoubleSpinBox()
             self.random_settle_spin.setRange(0.0, 3600.0)
             self.random_settle_spin.setDecimals(3)
-            self.random_settle_spin.setValue(0.5)
+            self.random_settle_spin.setValue(1.5)
             self.random_sample_interval_spin = QtWidgets.QDoubleSpinBox()
             self.random_sample_interval_spin.setRange(0.0, 3600.0)
             self.random_sample_interval_spin.setDecimals(3)
@@ -317,39 +371,44 @@ if QtWidgets is not None:
             layout.setContentsMargins(0, 0, 0, 0)
             self.manual_scan_values_edit = QtWidgets.QLineEdit("-0.2, -0.1, 0.0, 0.1, 0.2")
             self.manual_scan_values_edit.setPlaceholderText("Comma-separated values")
-            hint = QtWidgets.QLabel("Example: -0.2, -0.1, 0.0, 0.1, 0.2")
-            hint.setWordWrap(True)
             layout.addWidget(self.manual_scan_values_edit)
-            layout.addWidget(hint)
             return widget
 
         def _build_range_step_page(self):
             widget = QtWidgets.QWidget()
-            form = QtWidgets.QFormLayout(widget)
+            layout = QtWidgets.QHBoxLayout(widget)
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(8)
             self.range_start_spin = self._new_scan_value_spinbox()
             self.range_stop_spin = self._new_scan_value_spinbox()
             self.range_step_spin = self._new_positive_step_spinbox(default=0.05)
-            form.addRow("Start", self.range_start_spin)
-            form.addRow("Stop", self.range_stop_spin)
-            form.addRow("Step", self.range_step_spin)
+            layout.addWidget(self._compact_field("Start", self.range_start_spin), 1)
+            layout.addWidget(self._compact_field("Stop", self.range_stop_spin), 1)
+            layout.addWidget(self._compact_field("Step", self.range_step_spin), 1)
             return widget
 
         def _build_range_points_page(self):
             widget = QtWidgets.QWidget()
-            form = QtWidgets.QFormLayout(widget)
+            layout = QtWidgets.QHBoxLayout(widget)
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(8)
             self.points_start_spin = self._new_scan_value_spinbox()
             self.points_stop_spin = self._new_scan_value_spinbox()
             self.points_count_spin = QtWidgets.QSpinBox()
             self.points_count_spin.setRange(1, 1000000)
             self.points_count_spin.setValue(5)
-            form.addRow("Start", self.points_start_spin)
-            form.addRow("Stop", self.points_stop_spin)
-            form.addRow("Num Points", self.points_count_spin)
+            layout.addWidget(self._compact_field("Start", self.points_start_spin), 1)
+            layout.addWidget(self._compact_field("Stop", self.points_stop_spin), 1)
+            layout.addWidget(self._compact_field("Num Points", self.points_count_spin), 1)
             return widget
 
         def _build_symmetric_points_page(self):
             widget = QtWidgets.QWidget()
-            form = QtWidgets.QFormLayout(widget)
+            layout = QtWidgets.QVBoxLayout(widget)
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(4)
+            fields = QtWidgets.QHBoxLayout()
+            fields.setSpacing(8)
             self.symmetric_half_range_spin = self._new_positive_step_spinbox(default=0.2)
             self.symmetric_points_spin = QtWidgets.QSpinBox()
             self.symmetric_points_spin.setRange(1, 1000000)
@@ -358,9 +417,10 @@ if QtWidgets is not None:
                 "Center is read from the knob readback when the scan starts."
             )
             self.symmetric_info_label.setWordWrap(True)
-            form.addRow("Half Range", self.symmetric_half_range_spin)
-            form.addRow("Num Points", self.symmetric_points_spin)
-            form.addRow("", self.symmetric_info_label)
+            fields.addWidget(self._compact_field("Half Range", self.symmetric_half_range_spin), 1)
+            fields.addWidget(self._compact_field("Num Points", self.symmetric_points_spin), 1)
+            layout.addLayout(fields)
+            layout.addWidget(self.symmetric_info_label)
             return widget
 
         def _new_scan_value_spinbox(self):
@@ -379,6 +439,14 @@ if QtWidgets is not None:
 
         def _update_scan_value_mode(self) -> None:
             self.scan_value_stack.setCurrentIndex(self.scan_value_mode_combo.currentIndex())
+            current_page = self.scan_value_stack.currentWidget()
+            if current_page is not None:
+                page_layout = current_page.layout()
+                if page_layout is not None:
+                    page_layout.activate()
+                self.scan_value_stack.setFixedHeight(max(32, current_page.sizeHint().height()))
+            is_symmetric = self.scan_value_mode_combo.currentData() == "symmetric_points"
+            self.preview_refresh_button.setVisible(is_symmetric)
 
         def set_knob_choices(self, knobs, active_knob_id: str | None = None, group_labels: dict[str, str] | None = None) -> None:
             self._group_labels = dict(group_labels or {})
@@ -705,6 +773,7 @@ if QtWidgets is not None:
         def set_knob_scan_enabled(self, enabled: bool) -> None:
             self._knob_modes_enabled = bool(enabled)
             self.active_knob_combo.setEnabled(self._knob_modes_enabled)
+            self.active_knob_dropdown_button.setEnabled(self._knob_modes_enabled)
             self.random_config_button.setEnabled(self._knob_modes_enabled)
             self.preview_refresh_button.setEnabled(self._knob_modes_enabled)
             self.preview_show_button.setEnabled(self._knob_modes_enabled and bool(self._preview_text))
@@ -745,19 +814,18 @@ if QtWidgets is not None:
         def _update_single_scope_summary(self, knob) -> None:
             total_selected = len(self._knobs_by_id)
             if knob is None:
-                self.single_scope_label.setText(
-                    "Writes: only the active control PV. Other selected control PVs stay fixed."
-                )
+                self.single_scope_label.clear()
+                self.single_scope_label.setVisible(False)
                 return
             other_count = max(total_selected - 1, 0)
             if other_count <= 0:
-                self.single_scope_label.setText(
-                    f"Writes: only {knob.name}. No other selected control PVs will move."
-                )
-            else:
-                self.single_scope_label.setText(
-                    f"Writes: only {knob.name}. The other {other_count} selected control PV(s) stay fixed."
-                )
+                self.single_scope_label.clear()
+                self.single_scope_label.setVisible(False)
+                return
+            self.single_scope_label.setText(
+                f"Only {knob.name} will move; the other {other_count} selected control PV(s) stay fixed."
+            )
+            self.single_scope_label.setVisible(True)
 
         def _update_random_distribution_help(self) -> None:
             mode = str(self.random_distribution_combo.currentData() or "uniform")

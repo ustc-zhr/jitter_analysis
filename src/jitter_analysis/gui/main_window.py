@@ -29,7 +29,6 @@ if __package__ in {None, ""}:
         RunMode,
         RunResult,
         RunStatus,
-        SampleRecord,
         ScanStepRecord,
         TimedRunSeriesSnapshot,
         WaveformRecord,
@@ -122,7 +121,6 @@ else:
         RunMode,
         RunResult,
         RunStatus,
-        SampleRecord,
         ScanStepRecord,
         TimedRunSeriesSnapshot,
         WaveformRecord,
@@ -224,6 +222,13 @@ class MainWindow(_MainWindowBase):
         self.state = state
         self.run_service = run_service
         self.task_service = task_service
+        app = QtWidgets.QApplication.instance()
+        self._settings_enabled = bool(app is not None and app.applicationName() == "Jitter Analysis")
+        self.settings = QtCore.QSettings("IRFEL", "Jitter Analysis")
+        if self._settings_enabled:
+            saved_theme = str(self.settings.value("ui/theme", "") or "").strip()
+            if saved_theme:
+                apply_app_theme(app, saved_theme)
         self.loaded_config = None
         self.epics_client = PyEpicsClient()
         self.sampler = AcquisitionSampler(self.epics_client)
@@ -259,13 +264,21 @@ class MainWindow(_MainWindowBase):
         self._waveform_analysis_inflight_signature = None
         self._waveform_analysis_result = {}
         self._pending_waveform_analysis_signature = None
+        self._last_connection_summary_text = "Not checked"
+        self._last_saved_run_path: Path | None = None
+        self._setup_action_key: str | None = None
         apply_plot_theme(current_theme_id(QtWidgets.QApplication.instance()))
         self.setWindowTitle("Jitter Analysis")
         self.resize(1540, 900)
         self._build_ui()
         self._apply_plot_widget_theme(current_theme_id(QtWidgets.QApplication.instance()))
         self._wire_actions()
+        self._restore_preferences()
         self._try_load_default_config()
+
+    def closeEvent(self, event) -> None:
+        self._save_preferences()
+        super().closeEvent(event)
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
@@ -385,7 +398,7 @@ class MainWindow(_MainWindowBase):
         self.run_stop_button = QtWidgets.QPushButton("Stop")
         button_specs = (
             (self.run_check_button, 112, "info"),
-            (self.run_start_button, 172, "control"),
+            (self.run_start_button, 192, "control"),
             (self.run_stop_button, 82, "danger"),
         )
         for button, width, tone in button_specs:
@@ -479,6 +492,8 @@ class MainWindow(_MainWindowBase):
         apply_plot_theme(theme_id)
         self._apply_plot_widget_theme(theme_id)
         self._sync_theme_actions()
+        if self._settings_enabled:
+            self.settings.setValue("ui/theme", theme_id)
         self.append_log(f"GUI theme set to {theme_label(theme_id)}.")
 
     def _apply_plot_widget_theme(self, theme_id: str | None = None) -> None:
@@ -589,11 +604,13 @@ class MainWindow(_MainWindowBase):
         layout.setSpacing(8)
 
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        splitter.setObjectName("configSplitter")
+        self.config_splitter = splitter
         splitter.setChildrenCollapsible(False)
-        splitter.setCollapsible(0, False)
-        splitter.setCollapsible(1, False)
         splitter.addWidget(self._build_left_panel())
         splitter.addWidget(self._build_task_setup_group())
+        splitter.setCollapsible(0, False)
+        splitter.setCollapsible(1, False)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
         splitter.setSizes([400, 1000])
@@ -613,11 +630,50 @@ class MainWindow(_MainWindowBase):
 
         self.status_panel = StatusPanel()
         inner.addWidget(self.status_panel)
+        inner.addWidget(self._build_run_completion_banner())
 
+        self.run_plot_stack = QtWidgets.QStackedWidget()
         self.trend_plot = TrendPlot()
-        inner.addWidget(self.trend_plot, 1)
+        self.run_response_plot = ResponsePlot()
+        self.run_plot_stack.addWidget(self.trend_plot)
+        self.run_plot_stack.addWidget(self.run_response_plot)
+        inner.addWidget(self.run_plot_stack, 1)
         layout.addWidget(box, 1)
         return container
+
+    def _build_run_completion_banner(self):
+        frame = QtWidgets.QFrame()
+        frame.setObjectName("runCompletionBanner")
+        frame.setProperty("tone", "success")
+        layout = QtWidgets.QHBoxLayout(frame)
+        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(8)
+        self.run_completion_label = QtWidgets.QLabel()
+        self.run_completion_label.setWordWrap(True)
+        layout.addWidget(self.run_completion_label, 1)
+        self.run_completion_analysis_button = QtWidgets.QPushButton("Open Analysis")
+        self.run_completion_copy_button = QtWidgets.QPushButton("Copy Run Path")
+        self.run_completion_again_button = QtWidgets.QPushButton("Run Again")
+        self.run_completion_close_button = QtWidgets.QToolButton()
+        self.run_completion_close_button.setText("×")
+        self.run_completion_close_button.setAccessibleName("Dismiss run completion message")
+        for button in (
+            self.run_completion_analysis_button,
+            self.run_completion_copy_button,
+            self.run_completion_again_button,
+        ):
+            button.setProperty("role", "diagnostic")
+            button.setMinimumHeight(32)
+        self.run_completion_analysis_button.setProperty("role", "control")
+        self.run_completion_close_button.setProperty("role", "subtle")
+        self.run_completion_close_button.setFixedSize(32, 32)
+        layout.addWidget(self.run_completion_analysis_button)
+        layout.addWidget(self.run_completion_copy_button)
+        layout.addWidget(self.run_completion_again_button)
+        layout.addWidget(self.run_completion_close_button)
+        frame.setVisible(False)
+        self.run_completion_banner = frame
+        return frame
 
     def _build_analysis_page(self):
         container = QtWidgets.QWidget()
@@ -666,16 +722,35 @@ class MainWindow(_MainWindowBase):
         corner_layout.setSpacing(8)
         self.analysis_axis_label = QtWidgets.QLabel("X Axis")
         self.analysis_axis_label.setProperty("role", "field")
-        corner_layout.addWidget(self.analysis_axis_label, 0)
         self.analysis_axis_combo = QtWidgets.QComboBox()
         self.analysis_axis_combo.addItem("Readback", "readback")
         self.analysis_axis_combo.addItem("Target", "target")
-        self.analysis_axis_combo.setFixedHeight(32)
-        self.analysis_axis_combo.setMinimumWidth(118)
         self.analysis_axis_combo.setToolTip(
             "Choose whether Single Knob response and sensitivity use knob readback or target values on the x-axis."
         )
-        corner_layout.addWidget(self.analysis_axis_combo, 0)
+        self.analysis_axis_label.hide()
+        self.analysis_axis_combo.hide()
+
+        self.analysis_more_button = QtWidgets.QPushButton("More")
+        self.analysis_more_button.setProperty("compactControl", "true")
+        self.analysis_more_button.setFixedSize(88, 28)
+        self.analysis_more_button.setToolTip("Single Knob analysis options. X Axis: Readback")
+        self.analysis_more_menu = QtWidgets.QMenu(self.analysis_more_button)
+        self.analysis_axis_action_group = QtWidgets.QActionGroup(self.analysis_more_menu)
+        self.analysis_axis_action_group.setExclusive(True)
+        self.analysis_axis_actions = {}
+        for label, source in (("X Axis: Readback", "readback"), ("X Axis: Target", "target")):
+            action = self.analysis_more_menu.addAction(label)
+            action.setCheckable(True)
+            action.setData(source)
+            action.setChecked(source == "readback")
+            self.analysis_axis_action_group.addAction(action)
+            action.triggered.connect(
+                lambda _checked=False, axis_source=source: self._select_single_knob_axis(axis_source)
+            )
+            self.analysis_axis_actions[source] = action
+        self.analysis_more_button.setMenu(self.analysis_more_menu)
+        corner_layout.addWidget(self.analysis_more_button, 0)
         self.analysis_tabs.setCornerWidget(corner, QtCore.Qt.TopRightCorner)
 
         self.response_plot = ResponsePlot()
@@ -744,9 +819,14 @@ class MainWindow(_MainWindowBase):
         frame = QtWidgets.QFrame()
         frame.setObjectName("modeStatusBanner")
         frame.setProperty("tone", "subtle")
-        layout = QtWidgets.QVBoxLayout(frame)
+        self.mode_status_banner = frame
+        layout = QtWidgets.QHBoxLayout(frame)
         layout.setContentsMargins(12, 10, 12, 10)
-        layout.setSpacing(4)
+        layout.setSpacing(12)
+
+        text_layout = QtWidgets.QVBoxLayout()
+        text_layout.setContentsMargins(0, 0, 0, 0)
+        text_layout.setSpacing(4)
 
         self.mode_status_title_label = QtWidgets.QLabel("Setup status")
         self.mode_status_title_label.setProperty("role", "title")
@@ -757,9 +837,15 @@ class MainWindow(_MainWindowBase):
         self.mode_status_context_label.setWordWrap(True)
         self.mode_status_context_label.setProperty("role", "context")
 
-        layout.addWidget(self.mode_status_title_label)
-        layout.addWidget(self.mode_status_message_label)
-        layout.addWidget(self.mode_status_context_label)
+        text_layout.addWidget(self.mode_status_title_label)
+        text_layout.addWidget(self.mode_status_message_label)
+        text_layout.addWidget(self.mode_status_context_label)
+        layout.addLayout(text_layout, 1)
+        self.mode_status_action_button = QtWidgets.QPushButton()
+        self.mode_status_action_button.setProperty("role", "diagnostic")
+        self.mode_status_action_button.setMinimumHeight(34)
+        self.mode_status_action_button.setVisible(False)
+        layout.addWidget(self.mode_status_action_button, 0, QtCore.Qt.AlignVCenter)
         return frame
 
     def _build_jitter_summary(self):
@@ -910,6 +996,11 @@ class MainWindow(_MainWindowBase):
         self.run_check_button.clicked.connect(self.check_selected_connections)
         self.run_start_button.clicked.connect(self.start_selected_mode)
         self.run_stop_button.clicked.connect(self.stop_active_run)
+        self.mode_status_action_button.clicked.connect(self._run_setup_status_action)
+        self.run_completion_analysis_button.clicked.connect(self._open_current_analysis)
+        self.run_completion_copy_button.clicked.connect(self._copy_last_run_path)
+        self.run_completion_again_button.clicked.connect(self._review_run_again)
+        self.run_completion_close_button.clicked.connect(self.run_completion_banner.hide)
         self.analysis_open_run_button.clicked.connect(self.open_run_browser)
         self.analysis_axis_combo.currentIndexChanged.connect(self._on_single_knob_axis_changed)
         self.analysis_tabs.currentChanged.connect(self._on_analysis_tab_changed)
@@ -998,6 +1089,39 @@ class MainWindow(_MainWindowBase):
         default_path = self._default_config_path()
         if default_path.exists():
             self._load_config_path(default_path, quiet=True)
+
+    def _restore_preferences(self) -> None:
+        if not self._settings_enabled:
+            return
+        geometry = self.settings.value("ui/geometry")
+        if geometry:
+            self.restoreGeometry(geometry)
+        splitter_state = self.settings.value("ui/config_splitter")
+        if splitter_state:
+            self.config_splitter.restoreState(splitter_state)
+        save_dir = str(self.settings.value("run/save_dir", "") or "").strip()
+        if save_dir:
+            self.config_panel.save_dir_edit.setText(save_dir)
+            self.state.save_dir = save_dir
+        operator = str(self.settings.value("run/operator", "") or "")
+        if operator:
+            self.config_panel.operator_edit.setText(operator)
+        if not self.state.config_path:
+            recent_config = str(self.settings.value("config/recent_path", "") or "").strip()
+            if recent_config and Path(recent_config).exists():
+                self.state.config_path = recent_config
+
+    def _save_preferences(self) -> None:
+        if not self._settings_enabled:
+            return
+        self.settings.setValue("ui/geometry", self.saveGeometry())
+        self.settings.setValue("ui/config_splitter", self.config_splitter.saveState())
+        self.settings.setValue("ui/theme", current_theme_id(QtWidgets.QApplication.instance()))
+        self.settings.setValue("run/save_dir", self.config_panel.save_dir_edit.text().strip() or "runs")
+        self.settings.setValue("run/operator", self.config_panel.operator_edit.text().strip())
+        if self.loaded_config is not None and self.loaded_config.source_path:
+            self.settings.setValue("config/recent_path", self.loaded_config.source_path)
+        self.settings.sync()
 
     def load_config_file(self) -> bool:
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
@@ -1478,11 +1602,14 @@ class MainWindow(_MainWindowBase):
         self.main_tabs.setCurrentIndex(self.analysis_page_index)
         self._ensure_visible_analysis_tab_loaded()
         self._set_connection_status("Offline Run", tone="info")
-        self.status_panel.set_mode("Loaded Run", tone="info")
+        self.status_panel.set_run_id(result.metadata.run_id, tone="info")
         self.status_panel.set_sample(str(self._current_record_count()), tone="subtle")
         self.status_panel.set_step(str(len(self.current_run_steps)), tone="subtle")
-        self.status_panel.set_current(result.metadata.run_id, tone="subtle")
-        self.status_panel.set_time(result.metadata.created_at.strftime("%Y-%m-%d %H:%M:%S"), tone="subtle")
+        latest_timestamp = max(
+            (sample.timestamp for sample in result.samples),
+            default=None,
+        )
+        self._set_elapsed_from_timestamp(latest_timestamp)
 
         self.append_log(
             f"Loaded saved run {result.metadata.run_id} ({self._mode_display_name(self._mode_key_from_run_mode(result.metadata.mode))})."
@@ -1528,6 +1655,7 @@ class MainWindow(_MainWindowBase):
         }
         self.trend_plot.reset_channels(scalar_objects)
         self.trend_plot.clear_highlight()
+        self.run_response_plot.reset_channels("", "", [])
         self.response_plot.reset_channels("", "", [])
         self._reset_analysis_views()
 
@@ -1547,11 +1675,14 @@ class MainWindow(_MainWindowBase):
         self.main_tabs.setCurrentIndex(self.analysis_page_index)
         self._ensure_visible_analysis_tab_loaded()
         self._set_connection_status("Offline Run", tone="info")
-        self.status_panel.set_mode("Loaded Run", tone="info")
+        self.status_panel.set_run_id(snapshot.metadata.run_id, tone="info")
         self.status_panel.set_sample(str(self._current_record_count()), tone="subtle")
         self.status_panel.set_step("0", tone="subtle")
-        self.status_panel.set_current(snapshot.metadata.run_id, tone="subtle")
-        self.status_panel.set_time(snapshot.metadata.created_at.strftime("%Y-%m-%d %H:%M:%S"), tone="subtle")
+        latest_timestamp = next(
+            (timestamp for timestamp in reversed(snapshot.sample_timestamps) if timestamp is not None),
+            None,
+        )
+        self._set_elapsed_from_timestamp(latest_timestamp)
 
         mode_name = self._mode_display_name(self._mode_key_from_run_mode(snapshot.metadata.mode))
         self.append_log(
@@ -1999,7 +2130,9 @@ class MainWindow(_MainWindowBase):
             run_status_tone_value,
         )
 
-        self.scan_panel.active_knob_combo.setEnabled(bool(selected_knobs) and not running)
+        active_knob_selection_enabled = bool(selected_knobs) and not running
+        self.scan_panel.active_knob_combo.setEnabled(active_knob_selection_enabled)
+        self.scan_panel.active_knob_dropdown_button.setEnabled(active_knob_selection_enabled)
         self.scan_panel.preview_refresh_button.setEnabled(bool(active_knob) and not running)
         self.scan_panel.random_config_button.setEnabled(bool(selected_knobs) and not running)
         self.scan_panel.random_preview_button.setEnabled(bool(selected_knobs) and not running)
@@ -2017,13 +2150,19 @@ class MainWindow(_MainWindowBase):
                 self._set_connection_status("Not checked", tone="subtle")
 
         if self.state.run_status == RunStatus.IDLE and not self._viewing_saved_run:
-            self.status_panel.set_mode(self._mode_display_name(mode), tone="info")
+            self.status_panel.set_run_id("--", tone="subtle")
             self.status_panel.set_sample("-", tone="subtle")
             self.status_panel.set_step("-", tone="subtle")
-            self.status_panel.set_current("--", tone="subtle")
-            self.status_panel.set_time("--", tone="subtle")
+            self.status_panel.set_elapsed("--", tone="subtle")
 
     def _update_mode_status_banner(self, mode: str, ready: bool, next_step: str) -> None:
+        if ready and self.state.run_status != RunStatus.RUNNING and not self._viewing_saved_run:
+            self._setup_action_key = None
+            self.mode_status_action_button.hide()
+            self.mode_status_banner.hide()
+            return
+
+        self.mode_status_banner.show()
         if self.state.run_status == RunStatus.RUNNING:
             tone = "info"
             title = f"{self._mode_display_name(mode)} running"
@@ -2035,10 +2174,6 @@ class MainWindow(_MainWindowBase):
                 f"{self.current_run_metadata.run_id} | "
                 f"{self._mode_display_name(self._mode_key_from_run_mode(self.current_run_mode))}"
             )
-        elif ready:
-            tone = "success"
-            title = "Ready"
-            message = next_step
         elif self.loaded_config is None:
             tone = "subtle"
             title = "PV library required"
@@ -2056,9 +2191,36 @@ class MainWindow(_MainWindowBase):
             context = ""
         self.mode_status_context_label.setText(context)
         self.mode_status_context_label.setVisible(bool(context))
-        self.mode_status_title_label.parentWidget().setProperty("tone", tone)
-        self.mode_status_title_label.parentWidget().style().unpolish(self.mode_status_title_label.parentWidget())
-        self.mode_status_title_label.parentWidget().style().polish(self.mode_status_title_label.parentWidget())
+        action_key, action_label = self._setup_status_action(mode, ready)
+        self._setup_action_key = action_key
+        self.mode_status_action_button.setText(action_label)
+        self.mode_status_action_button.setVisible(bool(action_key))
+        self.mode_status_banner.setProperty("tone", tone)
+        self.mode_status_banner.style().unpolish(self.mode_status_banner)
+        self.mode_status_banner.style().polish(self.mode_status_banner)
+
+    def _setup_status_action(self, mode: str, ready: bool) -> tuple[str | None, str]:
+        if ready or self.state.run_status == RunStatus.RUNNING or self._viewing_saved_run:
+            return None, ""
+        if self.loaded_config is None:
+            return "load_config", "Load PV Library"
+        if mode in {"single_knob_scan", "multi_knob_random"} and not self._selected_knobs():
+            return "choose_pvs", "Choose PVs"
+        if not self._selected_objects():
+            return "choose_pvs", "Choose PVs"
+        if mode == "single_knob_scan" and self._active_knob() is None:
+            return "choose_pvs", "Choose Knob"
+        if mode == "multi_knob_random":
+            return "configure_ranges", "Configure Ranges"
+        return None, ""
+
+    def _run_setup_status_action(self) -> None:
+        if self._setup_action_key == "load_config":
+            self.load_config_file()
+        elif self._setup_action_key == "choose_pvs":
+            self.open_pv_selector()
+        elif self._setup_action_key == "configure_ranges":
+            self.open_random_knob_config_dialog()
 
     def _leave_saved_run_context(self) -> None:
         self._viewing_saved_run = False
@@ -2436,21 +2598,28 @@ class MainWindow(_MainWindowBase):
         knob = next((item for item in self.loaded_config.knobs if item.id == knob_id), None)
         axis_name = self._single_knob_axis_name(knob.name if knob is not None else "Knob Value")
         axis_unit = knob.unit if knob is not None else ""
-        self.response_plot.reset_channels(axis_name, axis_unit, selected_objects)
+        for plot in (self.run_response_plot, self.response_plot):
+            plot.reset_channels(axis_name, axis_unit, selected_objects)
         for step in self.current_run_steps:
             if not isinstance(step, ScanStepRecord):
                 continue
             axis_value = self._single_knob_step_axis_value(step)
             if axis_value is None or not math.isfinite(axis_value):
                 continue
-            self.response_plot.append_step(
-                float(axis_value),
-                step.samples,
-                group_key=float(step.target_value),
-            )
+            for plot in (self.run_response_plot, self.response_plot):
+                plot.append_step(
+                    float(axis_value),
+                    step.samples,
+                    group_key=float(step.target_value),
+                )
 
     def _on_single_knob_axis_changed(self) -> None:
         axis_source = str(self.analysis_axis_combo.currentData() or "readback")
+        for source, action in self.analysis_axis_actions.items():
+            action.setChecked(source == axis_source)
+        self.analysis_more_button.setToolTip(
+            f"Single Knob analysis options. X Axis: {axis_source.title()}"
+        )
         if axis_source == self._single_knob_axis_source:
             return
         self._single_knob_axis_source = axis_source
@@ -2460,6 +2629,11 @@ class MainWindow(_MainWindowBase):
             if self.main_tabs.currentIndex() == self.analysis_page_index:
                 self._ensure_analysis_tab_loaded(self.analysis_tabs.currentIndex())
         self._refresh_ui_affordances()
+
+    def _select_single_knob_axis(self, axis_source: str) -> None:
+        index = self.analysis_axis_combo.findData(axis_source)
+        if index >= 0:
+            self.analysis_axis_combo.setCurrentIndex(index)
 
     def _set_analysis_tab_visible(self, tab_index: int, visible: bool) -> None:
         tab_bar = self.analysis_tabs.tabBar()
@@ -2475,12 +2649,16 @@ class MainWindow(_MainWindowBase):
         single_knob_axis_enabled = analysis_mode == "single_knob_scan"
         response_visible = analysis_mode in {"single_knob_scan", "multi_knob_random"}
         sensitivity_visible = analysis_mode == "single_knob_scan"
+        general_analysis_visible = analysis_mode != "single_knob_scan"
         waveform_visible = analysis_mode == "timed_acquisition" and self._has_waveform_data
+        self.run_plot_stack.setCurrentWidget(
+            self.run_response_plot if analysis_mode == "single_knob_scan" else self.trend_plot
+        )
         self._refresh_analysis_outlier_filter_affordances()
-        self.analysis_axis_label.setVisible(single_knob_axis_enabled)
-        self.analysis_axis_combo.setVisible(single_knob_axis_enabled)
-        self.analysis_axis_label.setEnabled(single_knob_axis_enabled)
-        self.analysis_axis_combo.setEnabled(single_knob_axis_enabled)
+        self.analysis_axis_label.setVisible(False)
+        self.analysis_axis_combo.setVisible(False)
+        self.analysis_more_button.setVisible(single_knob_axis_enabled)
+        self.analysis_more_button.setEnabled(single_knob_axis_enabled)
         self.analysis_axis_combo.setToolTip(
             "Choose whether Single Knob response and sensitivity use knob readback or target values on the x-axis."
             if single_knob_axis_enabled
@@ -2490,9 +2668,12 @@ class MainWindow(_MainWindowBase):
         self._set_analysis_tab_visible(self.response_tab_index, response_visible)
         self._set_analysis_tab_visible(self.waveform_tab_index, waveform_visible)
         self._set_analysis_tab_visible(self.sensitivity_tab_index, sensitivity_visible)
-        self.analysis_tabs.setTabEnabled(self.jitter_tab_index, True)
-        self.analysis_tabs.setTabEnabled(self.correlation_tab_index, True)
-        self.analysis_tabs.setTabEnabled(self.spectrum_tab_index, True)
+        self._set_analysis_tab_visible(self.jitter_tab_index, general_analysis_visible)
+        self._set_analysis_tab_visible(self.correlation_tab_index, general_analysis_visible)
+        self._set_analysis_tab_visible(self.spectrum_tab_index, general_analysis_visible)
+        self.analysis_tabs.setTabEnabled(self.jitter_tab_index, general_analysis_visible)
+        self.analysis_tabs.setTabEnabled(self.correlation_tab_index, general_analysis_visible)
+        self.analysis_tabs.setTabEnabled(self.spectrum_tab_index, general_analysis_visible)
         self.analysis_tabs.setTabEnabled(self.waveform_tab_index, waveform_visible)
         sensitivity_enabled = self._has_sensitivity_data and analysis_mode == "single_knob_scan"
         self.analysis_tabs.setTabEnabled(self.sensitivity_tab_index, sensitivity_visible)
@@ -2532,6 +2713,13 @@ class MainWindow(_MainWindowBase):
         if self.analysis_tabs.currentIndex() == self.waveform_tab_index:
             self.analysis_tabs.setCurrentIndex(self.response_tab_index if response_visible else self.jitter_tab_index)
         if analysis_mode == "single_knob_scan":
+            if self.analysis_tabs.currentIndex() in {
+                self.waveform_tab_index,
+                self.jitter_tab_index,
+                self.correlation_tab_index,
+                self.spectrum_tab_index,
+            }:
+                self.analysis_tabs.setCurrentIndex(self.response_tab_index)
             self.analysis_tabs.setTabText(self.response_tab_index, "Response")
             self.analysis_tabs.tabBar().setTabToolTip(
                 self.response_tab_index,
@@ -2662,7 +2850,7 @@ class MainWindow(_MainWindowBase):
         self._set_connection_status(label, tone=tone)
 
     def _set_connection_status(self, text: str, tone: str = "subtle") -> None:
-        self.status_panel.set_connection(text, tone=tone)
+        self._last_connection_summary_text = str(text)
         if hasattr(self, "global_epics_status_label"):
             self._set_global_status_pill(
                 self.global_epics_status_label,
@@ -2828,6 +3016,7 @@ class MainWindow(_MainWindowBase):
         self._loaded_run_used_fast_path = False
         self._loaded_run_used_legacy_batch_reconstruction = False
         self.trend_plot.reset_channels(scalar_objects)
+        self.run_response_plot.reset_channels("", "", [])
         self.response_plot.reset_channels("", "", [])
         self._reset_analysis_views()
         self.current_run_mode = RunMode.TIMED_ACQUISITION
@@ -2835,7 +3024,7 @@ class MainWindow(_MainWindowBase):
         self._set_waveform_available(bool(waveform_objects))
         self._set_running_state(True)
         self.main_tabs.setCurrentIndex(self.run_tab_index)
-        self.status_panel.set_mode("Starting", tone="info")
+        self._initialize_run_status_panel()
         self.task_service.start(
             {
                 "mode": RunMode.TIMED_ACQUISITION.value,
@@ -2912,12 +3101,21 @@ class MainWindow(_MainWindowBase):
             return
 
         if self.loaded_config.defaults.safety.confirm_before_write:
+            total_samples = len(scan_values) * sample_count_per_step
+            estimated_sec = len(scan_values) * (
+                settle_delay_sec + max(0, sample_count_per_step - 1) * shot_interval_sec
+            )
             answer = QtWidgets.QMessageBox.question(
                 self,
-                "Single Knob",
+                "Start Single-Knob Scan",
                 (
-                    f"Start Single Knob on {active_knob.name} with {len(scan_values)} point(s)?\n"
-                    f"Range: {min(scan_values):.6g} to {max(scan_values):.6g} {active_knob.unit}"
+                    f"Control PV: {active_knob.name}\n"
+                    f"Points: {len(scan_values)}\n"
+                    f"Range: {min(scan_values):.6g} .. {max(scan_values):.6g} {active_knob.unit}\n"
+                    f"Samples: {sample_count_per_step} × {len(scan_values)} = {total_samples}\n"
+                    f"Estimated duration: {self._format_elapsed_duration(estimated_sec)}\n"
+                    f"Restore initial value: {'Yes' if restore_initial_value else 'No'}\n"
+                    f"EPICS: {self._last_connection_summary_text}"
                 ),
             )
             if answer != QtWidgets.QMessageBox.Yes:
@@ -2947,13 +3145,15 @@ class MainWindow(_MainWindowBase):
         self._loaded_run_used_fast_path = False
         self._loaded_run_used_legacy_batch_reconstruction = False
         self.trend_plot.reset_channels(selected_objects)
-        self.response_plot.reset_channels(active_knob.name, active_knob.unit, selected_objects)
+        axis_name = self._single_knob_axis_name(active_knob.name)
+        for plot in (self.run_response_plot, self.response_plot):
+            plot.reset_channels(axis_name, active_knob.unit, selected_objects)
         self._reset_analysis_views()
         self.current_run_mode = RunMode.KNOB_SCAN
         self.state.run_status = RunStatus.RUNNING
         self._set_running_state(True)
         self.main_tabs.setCurrentIndex(self.run_tab_index)
-        self.status_panel.set_mode("Starting", tone="info")
+        self._initialize_run_status_panel()
         self.task_service.start(
             {
                 "mode": RunMode.KNOB_SCAN.value,
@@ -3041,12 +3241,20 @@ class MainWindow(_MainWindowBase):
                 f"{spec['knob'].name}: {spec['low']:.6g} .. {spec['high']:.6g} {spec['knob'].unit}"
                 for spec in knob_ranges
             ]
+            total_samples = len(target_steps) * sample_count_per_point
+            estimated_sec = len(target_steps) * (
+                settle_delay_sec + max(0, sample_count_per_point - 1) * shot_interval_sec
+            )
             answer = QtWidgets.QMessageBox.question(
                 self,
-                "Random Multi-Knob",
+                "Start Random Scan",
                 (
-                    f"Start Random Multi-Knob with {len(target_steps)} point(s), "
-                    f"{len(knob_ranges)} knob(s), seed={seed}?\n\n"
+                    f"Control PVs: {len(knob_ranges)}\n"
+                    f"Points: {len(target_steps)} · Seed: {seed}\n"
+                    f"Samples: {sample_count_per_point} × {len(target_steps)} = {total_samples}\n"
+                    f"Estimated duration: {self._format_elapsed_duration(estimated_sec)}\n"
+                    f"Restore initial values: {'Yes' if restore_initial_values else 'No'}\n"
+                    f"EPICS: {self._last_connection_summary_text}\n\n"
                     + "\n".join(range_lines[:8])
                     + ("\n..." if len(range_lines) > 8 else "")
                 ),
@@ -3091,13 +3299,14 @@ class MainWindow(_MainWindowBase):
         self._loaded_run_used_fast_path = False
         self._loaded_run_used_legacy_batch_reconstruction = False
         self.trend_plot.reset_channels(selected_objects)
+        self.run_response_plot.reset_channels("", "", [])
         self.response_plot.reset_channels("Random Point Index", "", selected_objects)
         self._reset_analysis_views()
         self.current_run_mode = RunMode.MULTI_KNOB_RANDOM
         self.state.run_status = RunStatus.RUNNING
         self._set_running_state(True)
         self.main_tabs.setCurrentIndex(self.run_tab_index)
-        self.status_panel.set_mode("Starting", tone="info")
+        self._initialize_run_status_panel()
         self.task_service.start(
             {
                 "mode": RunMode.MULTI_KNOB_RANDOM.value,
@@ -3148,7 +3357,6 @@ class MainWindow(_MainWindowBase):
 
     def _on_acquisition_started(self, sample_count: int) -> None:
         self._set_running_state(True)
-        self.status_panel.set_mode("Monitor", tone="info")
         stop_mode = str(self.current_run_details.get("stop_mode", "samples"))
         if stop_mode == "samples":
             sample_text = f"0/{sample_count}"
@@ -3161,7 +3369,7 @@ class MainWindow(_MainWindowBase):
             sample_tone = "subtle"
         self.status_panel.set_sample(sample_text, tone=sample_tone)
         self.status_panel.set_step("-", tone="subtle")
-        self.status_panel.set_time("--", tone="subtle")
+        self.status_panel.set_elapsed("00:00", tone="info")
         if stop_mode == "samples":
             description = f"{sample_count} samples"
         elif stop_mode == "duration":
@@ -3201,13 +3409,7 @@ class MainWindow(_MainWindowBase):
 
         last_sample = scalar_samples[-1] if scalar_samples else (waveform_samples[-1] if waveform_samples else None)
         if last_sample is not None:
-            if isinstance(last_sample, SampleRecord):
-                current_value = "nan" if math.isnan(last_sample.value) else f"{last_sample.value:.6g}"
-                current_text = f"{last_sample.pv_id}: {current_value}"
-            else:
-                current_text = f"{last_sample.pv_id}: {len(last_sample.values)} pts"
-            self.status_panel.set_current(current_text, tone="subtle")
-            self.status_panel.set_time(last_sample.timestamp.strftime("%H:%M:%S.%f")[:-3], tone="subtle")
+            self._set_elapsed_from_timestamp(last_sample.timestamp)
         if waveform_samples and self.main_tabs.currentIndex() == self.analysis_page_index and self.analysis_tabs.currentIndex() == self.waveform_tab_index:
             self._analysis_tab_loaded[self.waveform_tab_index] = False
             self._populate_waveform_view()
@@ -3223,12 +3425,12 @@ class MainWindow(_MainWindowBase):
 
     def _on_acquisition_time_progress(self, elapsed_sec: float, total_sec: float) -> None:
         if total_sec > 0:
-            self.status_panel.set_time(
+            self.status_panel.set_elapsed(
                 f"{self._format_elapsed_duration(elapsed_sec)} / {self._format_elapsed_duration(total_sec)}",
                 tone="subtle",
             )
         else:
-            self.status_panel.set_time(self._format_elapsed_duration(elapsed_sec), tone="subtle")
+            self.status_panel.set_elapsed(self._format_elapsed_duration(elapsed_sec), tone="subtle")
 
     @staticmethod
     def _format_elapsed_duration(seconds: float) -> str:
@@ -3239,6 +3441,29 @@ class MainWindow(_MainWindowBase):
             return f"{hours}:{minutes:02d}:{seconds:02d}"
         return f"{minutes:02d}:{seconds:02d}"
 
+    def _initialize_run_status_panel(self) -> None:
+        self.run_completion_banner.hide()
+        self._last_saved_run_path = None
+        run_id = self.current_run_metadata.run_id if self.current_run_metadata is not None else "--"
+        self.status_panel.set_run_id(run_id, tone="info")
+        self.status_panel.set_sample("-", tone="subtle")
+        self.status_panel.set_step("-", tone="subtle")
+        self.status_panel.set_elapsed("00:00", tone="info")
+
+    def _set_elapsed_from_timestamp(self, timestamp) -> None:
+        if timestamp is None or self.current_run_metadata is None:
+            self.status_panel.set_elapsed("--", tone="subtle")
+            return
+        try:
+            elapsed_sec = (timestamp - self.current_run_metadata.created_at).total_seconds()
+        except (AttributeError, TypeError):
+            self.status_panel.set_elapsed("--", tone="subtle")
+            return
+        self.status_panel.set_elapsed(
+            self._format_elapsed_duration(elapsed_sec),
+            tone="info" if self.state.run_status == RunStatus.RUNNING else "subtle",
+        )
+
     def _on_acquisition_finished(self, outcome: str) -> None:
         status = RunStatus.COMPLETED if outcome == "completed" else RunStatus.STOPPED
         self._finalize_run(status, warning=None)
@@ -3246,17 +3471,15 @@ class MainWindow(_MainWindowBase):
 
     def _on_acquisition_failed(self, message: str) -> None:
         self._finalize_run(RunStatus.FAILED, warning=message)
-        QtWidgets.QMessageBox.critical(self, "Monitor", message)
 
     def _on_scan_started(self, total_steps: int, sample_count_per_step: int) -> None:
         self._set_running_state(True)
-        self.status_panel.set_mode("Single Knob", tone="info")
         self.status_panel.set_sample(
             f"0/{sample_count_per_step}",
             tone=self._progress_tone(0, sample_count_per_step),
         )
         self.status_panel.set_step(f"0/{total_steps}", tone=self._progress_tone(0, total_steps))
-        self.status_panel.set_time("--", tone="subtle")
+        self.status_panel.set_elapsed("00:00", tone="info")
         self.append_log(
             f"Started Single Knob run {self.current_run_metadata.run_id} with {total_steps} step(s)."
         )
@@ -3285,14 +3508,7 @@ class MainWindow(_MainWindowBase):
 
         last_sample = batch[-1] if batch else None
         if last_sample is not None:
-            current_value = "nan" if math.isnan(last_sample.value) else f"{last_sample.value:.6g}"
-            readback_text = "--" if readback_value is None else f"{readback_value:.6g}"
-            self.status_panel.set_current(
-                f"step={step_index + 1} knob={target_value:.6g} rb={readback_text} "
-                f"last={last_sample.pv_id}:{current_value}",
-                tone="subtle",
-            )
-            self.status_panel.set_time(last_sample.timestamp.strftime("%H:%M:%S.%f")[:-3], tone="subtle")
+            self._set_elapsed_from_timestamp(last_sample.timestamp)
 
     def _on_scan_step_ready(self, step_index: int, total_steps: int, target_value: float, readback_value, step_samples) -> None:
         step_record = ScanStepRecord(
@@ -3307,11 +3523,12 @@ class MainWindow(_MainWindowBase):
         self.run_service.append_step(step_record)
         axis_value = self._single_knob_step_axis_value(step_record)
         if axis_value is not None and math.isfinite(axis_value):
-            self.response_plot.append_step(
-                float(axis_value),
-                step_samples,
-                group_key=float(step_record.target_value),
-            )
+            for plot in (self.run_response_plot, self.response_plot):
+                plot.append_step(
+                    float(axis_value),
+                    step_samples,
+                    group_key=float(step_record.target_value),
+                )
         self.status_panel.set_step(
             f"{step_index + 1}/{total_steps}",
             tone=self._progress_tone(step_index + 1, total_steps),
@@ -3336,17 +3553,15 @@ class MainWindow(_MainWindowBase):
 
     def _on_scan_failed(self, message: str) -> None:
         self._finalize_run(RunStatus.FAILED, warning=message)
-        QtWidgets.QMessageBox.critical(self, "Single Knob", message)
 
     def _on_random_started(self, total_steps: int, sample_count_per_point: int, knob_count: int) -> None:
         self._set_running_state(True)
-        self.status_panel.set_mode("Random Multi-Knob", tone="info")
         self.status_panel.set_sample(
             f"0/{sample_count_per_point}",
             tone=self._progress_tone(0, sample_count_per_point),
         )
         self.status_panel.set_step(f"0/{total_steps}", tone=self._progress_tone(0, total_steps))
-        self.status_panel.set_time("--", tone="subtle")
+        self.status_panel.set_elapsed("00:00", tone="info")
         self.append_log(
             f"Started Random Multi-Knob run {self.current_run_metadata.run_id} "
             f"with {total_steps} point(s) across {knob_count} knob(s)."
@@ -3376,19 +3591,7 @@ class MainWindow(_MainWindowBase):
 
         last_sample = batch[-1] if batch else None
         if last_sample is not None:
-            current_value = "nan" if math.isnan(last_sample.value) else f"{last_sample.value:.6g}"
-            summary_parts = []
-            for knob_id, value in list(target_values.items())[:2]:
-                summary_parts.append(f"{knob_id}={float(value):.6g}")
-            knob_summary = ", ".join(summary_parts)
-            if len(target_values) > 2:
-                knob_summary += ", ..."
-            self.status_panel.set_current(
-                f"point={step_index + 1} sample={sample_index + 1} "
-                f"[{knob_summary}] last={last_sample.pv_id}:{current_value}",
-                tone="subtle",
-            )
-            self.status_panel.set_time(last_sample.timestamp.strftime("%H:%M:%S.%f")[:-3], tone="subtle")
+            self._set_elapsed_from_timestamp(last_sample.timestamp)
 
     def _on_random_step_ready(self, step_index: int, total_steps: int, target_values, readback_values, step_samples) -> None:
         step_record = MultiKnobStepRecord(
@@ -3429,18 +3632,20 @@ class MainWindow(_MainWindowBase):
 
     def _on_random_failed(self, message: str) -> None:
         self._finalize_run(RunStatus.FAILED, warning=message)
-        QtWidgets.QMessageBox.critical(self, "Random Multi-Knob", message)
 
     def _finalize_run(self, status: RunStatus, warning: str | None) -> None:
         self.state.run_status = status
         self.task_service.status = status
         self._set_running_state(False)
         terminal_tone = self._run_status_tone(status)
-        self.status_panel.set_mode(status.value, tone=terminal_tone)
+        self.status_panel.set_run_id(self.status_panel.run_id_value.text(), tone=terminal_tone)
         self.status_panel.set_sample(self.status_panel.sample_value.text(), tone=terminal_tone)
         self.status_panel.set_step(self.status_panel.step_value.text(), tone=terminal_tone)
+        self.status_panel.set_elapsed(self.status_panel.elapsed_value.text(), tone=terminal_tone)
 
         warnings = [warning] if warning else []
+        saved_path = None
+        save_error = None
         if self.current_run_metadata is not None:
             result = RunResult(
                 metadata=self.current_run_metadata,
@@ -3453,6 +3658,7 @@ class MainWindow(_MainWindowBase):
             try:
                 path = self.run_service.save_result(result)
             except Exception as exc:
+                save_error = str(exc)
                 self.append_log(f"Failed to save run output: {exc}")
                 QtWidgets.QMessageBox.warning(
                     self,
@@ -3460,9 +3666,11 @@ class MainWindow(_MainWindowBase):
                     f"Run data could not be fully saved:\n{exc}",
                 )
             else:
+                saved_path = Path(path)
+                self._last_saved_run_path = saved_path.parent
                 self.append_log(f"Saved run summary to {path} and raw samples to {path.parent / 'raw.h5'}.")
 
-        if status != RunStatus.FAILED:
+        if self._has_current_run_data():
             self._prepare_analysis_views_for_current_data()
             self._ensure_visible_analysis_tab_loaded()
         if warning:
@@ -3473,6 +3681,53 @@ class MainWindow(_MainWindowBase):
             else:
                 mode_label = "Monitor"
             self.append_log(f"{mode_label} failed: {warning}")
+        self._show_run_completion_banner(status, saved_path, warning or save_error)
+
+    def _show_run_completion_banner(
+        self,
+        status: RunStatus,
+        saved_path: Path | None,
+        detail: str | None,
+    ) -> None:
+        tone = self._run_status_tone(status)
+        sample_count = self._current_record_count()
+        elapsed = self.status_panel.elapsed_value.text()
+        status_label = status.value.replace("_", " ").title()
+        parts = [status_label, f"{sample_count:,} samples", elapsed]
+        if saved_path is not None:
+            parts.append("saved successfully")
+        elif detail:
+            parts.append("save or acquisition warning")
+        message = " · ".join(part for part in parts if part and part != "--")
+        if detail:
+            message += f"\n{detail}"
+        self.run_completion_label.setText(message)
+        self.run_completion_banner.setProperty("tone", tone)
+        self.run_completion_banner.style().unpolish(self.run_completion_banner)
+        self.run_completion_banner.style().polish(self.run_completion_banner)
+        self.run_completion_analysis_button.setText(
+            "Open Partial Data" if status == RunStatus.FAILED else "Open Analysis"
+        )
+        self.run_completion_analysis_button.setEnabled(self._has_current_run_data())
+        self.run_completion_copy_button.setEnabled(self._last_saved_run_path is not None)
+        self.run_completion_banner.setVisible(True)
+        self.main_tabs.setCurrentIndex(self.run_tab_index)
+
+    def _open_current_analysis(self) -> None:
+        self.run_completion_banner.hide()
+        self.main_tabs.setCurrentIndex(self.analysis_page_index)
+        self._ensure_visible_analysis_tab_loaded()
+
+    def _copy_last_run_path(self) -> None:
+        if self._last_saved_run_path is None:
+            return
+        clipboard = QtWidgets.QApplication.clipboard()
+        if clipboard is not None:
+            clipboard.setText(str(self._last_saved_run_path))
+
+    def _review_run_again(self) -> None:
+        self.run_completion_banner.hide()
+        self.main_tabs.setCurrentIndex(self.config_tab_index)
 
     def _reset_analysis_views(self) -> None:
         self._mark_analysis_tabs_dirty()
@@ -3556,6 +3811,7 @@ class MainWindow(_MainWindowBase):
         self.current_run_sample_timestamps = []
         self.trend_plot.reset_channels(scalar_objects)
         self.trend_plot.clear_highlight()
+        self.run_response_plot.reset_channels("", "", [])
         self.response_plot.reset_channels("", "", [])
         self._reset_analysis_views()
 

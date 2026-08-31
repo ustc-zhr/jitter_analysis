@@ -1,4 +1,6 @@
 import os
+from datetime import datetime, timedelta
+from types import SimpleNamespace
 
 import pytest
 
@@ -7,6 +9,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from jitter_analysis.gui import main_window as main_window_module
 from jitter_analysis.gui.state import AppState
+from jitter_analysis.domain.types import RunStatus
 from jitter_analysis.services.run_service import RunService
 from jitter_analysis.services.task_service import TaskService
 
@@ -61,6 +64,16 @@ def test_run_controls_are_persistent_children_of_the_app_header(qt_app, monkeypa
 
     window._set_connection_status("Connected (3/3 connected)", tone="success")
     assert window.global_epics_status_label.text() == "●  EPICS  Connected (3/3 connected)"
-    assert window.status_panel.connection_value.text() == "Connected (3/3 connected)"
+    assert set(window.status_panel._items) == {"run_id", "sample", "step", "elapsed"}
+    assert window.status_panel.run_id_value.text() == "--"
+    assert window.status_panel.elapsed_value.text() == "--"
+
+    started_at = datetime(2026, 8, 31, 10, 0, 0)
+    window.current_run_metadata = SimpleNamespace(run_id="run-42", created_at=started_at)
+    window.state.run_status = RunStatus.RUNNING
+    window._initialize_run_status_panel()
+    window._set_elapsed_from_timestamp(started_at + timedelta(seconds=125))
+    assert window.status_panel.run_id_value.text() == "run-42"
+    assert window.status_panel.elapsed_value.text() == "02:05"
 
     window.close()

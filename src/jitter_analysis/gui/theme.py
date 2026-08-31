@@ -394,6 +394,34 @@ QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {{
     border: none;
     width: 20px;
 }}
+QComboBox#activeKnobCombo {{
+    border-top-right-radius: 0px;
+    border-bottom-right-radius: 0px;
+}}
+QComboBox#activeKnobCombo::drop-down {{
+    border: none;
+    width: 0px;
+}}
+QToolButton#activeKnobDropdownButton {{
+    background: {spec.input_bg};
+    border: 1px solid {spec.border};
+    border-left: none;
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+    min-width: 36px;
+    max-width: 36px;
+    min-height: 32px;
+    max-height: 32px;
+    padding: 0px;
+}}
+QToolButton#activeKnobDropdownButton:hover {{
+    background: {spec.button_hover};
+}}
+QToolButton#activeKnobDropdownButton:pressed {{
+    background: {spec.subtle_bg};
+}}
 QComboBox QAbstractItemView {{
     background: {spec.input_bg};
     color: {spec.text_primary};
@@ -855,6 +883,49 @@ QFrame#modeStatusBanner[tone="warning"] {{
 }}
 QFrame#modeStatusBanner[tone="danger"] {{
     border-color: {danger_color};
+}}
+QFrame#runCompletionBanner {{
+    background: {status_bg};
+    border: 1px solid {success_color};
+    border-radius: 10px;
+}}
+QFrame#runCompletionBanner[tone="warning"] {{
+    border-color: {warning_color};
+}}
+QFrame#runCompletionBanner[tone="danger"] {{
+    border-color: {danger_color};
+}}
+QFrame#runCompletionBanner QLabel {{
+    background: transparent;
+    border: none;
+    color: {spec.text_primary};
+}}
+QFrame#singleKnobForm {{
+    background: transparent;
+    border: none;
+}}
+QLabel[role="formSectionTitle"] {{
+    background: transparent;
+    border: none;
+    color: {spec.section_title};
+    font-size: 14px;
+    font-weight: 800;
+}}
+QFrame#singleFormSeparator {{
+    background: {spec.border_soft};
+    border: none;
+    min-height: 1px;
+    max-height: 1px;
+}}
+QFrame#singlePreviewSummary {{
+    background: {status_bg};
+    border: 1px solid {status_border};
+    border-radius: 9px;
+}}
+QFrame#singlePreviewSummary QLabel {{
+    background: transparent;
+    border: none;
+    color: {spec.text_primary};
 }}
 QFrame#modeStatusBanner QLabel[role="message"] {{
     color: {spec.text_primary};

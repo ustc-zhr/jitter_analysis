@@ -1,4 +1,5 @@
 import os
+from types import SimpleNamespace
 
 import pytest
 
@@ -41,3 +42,49 @@ def test_monitor_stop_condition_shows_only_relevant_controls(qt_app):
     assert panel.count_spin.isHidden()
     assert panel.duration_spin.isHidden()
     assert panel.monitor_estimate_label.isHidden()
+
+
+def test_single_knob_page_uses_compact_form_and_only_refreshes_live_center(qt_app):
+    panel = scan_panel_module.ScanPanel()
+
+    assert not hasattr(panel, "single_intro_label")
+    assert panel.single_knob_page.findChildren(scan_panel_module.QtWidgets.QGroupBox) == []
+    assert panel.active_knob_combo.isEditable()
+    assert panel.active_knob_combo.objectName() == "activeKnobCombo"
+    assert panel.active_knob_dropdown_button.objectName() == "activeKnobDropdownButton"
+    assert panel.active_knob_dropdown_button.text() == "\u25be"
+    assert panel.active_knob_dropdown_button.toolTip() == "Show selected control PVs"
+    assert panel.active_knob_combo.height() == panel.active_knob_dropdown_button.height()
+    assert panel.step_sample_spin.value() == 5
+    assert panel.settle_spin.value() == 1.5
+    assert panel.random_samples_per_point_spin.value() == 5
+    assert panel.random_settle_spin.value() == 1.5
+    assert panel.scan_value_mode() == "symmetric_points"
+    assert panel.scan_value_stack.currentWidget() is panel.symmetric_page
+    assert not panel.preview_refresh_button.isHidden()
+
+    manual_index = panel.scan_value_mode_combo.findData("manual")
+    panel.scan_value_mode_combo.setCurrentIndex(manual_index)
+    assert panel.preview_refresh_button.isHidden()
+
+
+def test_single_knob_scope_warning_only_appears_for_extra_selected_knobs(qt_app):
+    panel = scan_panel_module.ScanPanel()
+    limits = SimpleNamespace(low=-1.0, high=1.0)
+    knobs = [
+        SimpleNamespace(
+            id="k1", name="K1", write_pv="TEST:K1", readback_pv="TEST:K1:RB",
+            group="corrector", limits=limits, unit="A", step_hint=0.1,
+        ),
+        SimpleNamespace(
+            id="k2", name="K2", write_pv="TEST:K2", readback_pv="TEST:K2:RB",
+            group="corrector", limits=limits, unit="A", step_hint=0.1,
+        ),
+    ]
+
+    panel.set_knob_choices(knobs[:1], active_knob_id="k1")
+    assert panel.single_scope_label.isHidden()
+
+    panel.set_knob_choices(knobs, active_knob_id="k1")
+    assert not panel.single_scope_label.isHidden()
+    assert "other 1 selected" in panel.single_scope_label.text()
