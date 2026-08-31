@@ -900,7 +900,7 @@ QFrame#runCompletionBanner QLabel {{
     border: none;
     color: {spec.text_primary};
 }}
-QFrame#singleKnobForm {{
+QFrame#singleKnobForm, QFrame#randomKnobForm {{
     background: transparent;
     border: none;
 }}
@@ -917,12 +917,13 @@ QFrame#singleFormSeparator {{
     min-height: 1px;
     max-height: 1px;
 }}
-QFrame#singlePreviewSummary {{
+QFrame#singlePreviewSummary, QFrame#randomPreviewSummary, QFrame#randomPointContext {{
     background: {status_bg};
     border: 1px solid {status_border};
     border-radius: 9px;
 }}
-QFrame#singlePreviewSummary QLabel {{
+QFrame#singlePreviewSummary QLabel, QFrame#randomPreviewSummary QLabel,
+QFrame#randomPointContext QLabel {{
     background: transparent;
     border: none;
     color: {spec.text_primary};

@@ -20,6 +20,7 @@ if __package__ in {None, ""}:
     from jitter_analysis.config.loader import load_config
     from jitter_analysis.config.editor import config_data_from_text, prepare_edited_config, save_config_file
     from jitter_analysis.analysis.correlation import compute_correlation_matrix
+    from jitter_analysis.analysis.influence import compute_random_multi_knob_influence
     from jitter_analysis.analysis.jitter import compute_jitter_stats
     from jitter_analysis.analysis.sensitivity import compute_single_knob_sensitivity
     from jitter_analysis.acquisition.sampler import AcquisitionSampler
@@ -93,6 +94,7 @@ if __package__ in {None, ""}:
         waveform_record_counts,
     )
     from jitter_analysis.gui.plots.correlation_plot import CorrelationPlot
+    from jitter_analysis.gui.plots.influence_plot import InfluencePlot
     from jitter_analysis.gui.plots.jitter_plot import JitterPlot
     from jitter_analysis.gui.plots.response_plot import ResponsePlot
     from jitter_analysis.gui.plots.sensitivity_plot import SensitivityPlot
@@ -112,6 +114,7 @@ else:
     from ..config.loader import load_config
     from ..config.editor import config_data_from_text, prepare_edited_config, save_config_file
     from ..analysis.correlation import compute_correlation_matrix
+    from ..analysis.influence import compute_random_multi_knob_influence
     from ..analysis.jitter import compute_jitter_stats
     from ..analysis.sensitivity import compute_single_knob_sensitivity
     from ..acquisition.sampler import AcquisitionSampler
@@ -185,6 +188,7 @@ else:
         waveform_record_counts,
     )
     from .plots.correlation_plot import CorrelationPlot
+    from .plots.influence_plot import InfluencePlot
     from .plots.jitter_plot import JitterPlot
     from .plots.response_plot import ResponsePlot
     from .plots.sensitivity_plot import SensitivityPlot
@@ -631,15 +635,34 @@ class MainWindow(_MainWindowBase):
         self.status_panel = StatusPanel()
         inner.addWidget(self.status_panel)
         inner.addWidget(self._build_run_completion_banner())
+        inner.addWidget(self._build_random_point_context())
 
         self.run_plot_stack = QtWidgets.QStackedWidget()
         self.trend_plot = TrendPlot()
-        self.run_response_plot = ResponsePlot()
+        self.run_response_plot = ResponsePlot(show_channel_selector=True)
         self.run_plot_stack.addWidget(self.trend_plot)
         self.run_plot_stack.addWidget(self.run_response_plot)
         inner.addWidget(self.run_plot_stack, 1)
         layout.addWidget(box, 1)
         return container
+
+    def _build_random_point_context(self):
+        frame = QtWidgets.QFrame()
+        frame.setObjectName("randomPointContext")
+        layout = QtWidgets.QHBoxLayout(frame)
+        layout.setContentsMargins(10, 7, 8, 7)
+        layout.setSpacing(8)
+        self.random_point_context_label = QtWidgets.QLabel("Waiting for the first random point.")
+        self.random_point_context_label.setWordWrap(True)
+        self.random_point_details_button = QtWidgets.QPushButton("Point Details")
+        self.random_point_details_button.setProperty("role", "diagnostic")
+        self.random_point_details_button.setEnabled(False)
+        layout.addWidget(self.random_point_context_label, 1)
+        layout.addWidget(self.random_point_details_button)
+        self._current_random_point_detail_text = ""
+        frame.setVisible(False)
+        self.random_point_context = frame
+        return frame
 
     def _build_run_completion_banner(self):
         frame = QtWidgets.QFrame()
@@ -753,8 +776,10 @@ class MainWindow(_MainWindowBase):
         corner_layout.addWidget(self.analysis_more_button, 0)
         self.analysis_tabs.setCornerWidget(corner, QtCore.Qt.TopRightCorner)
 
-        self.response_plot = ResponsePlot()
+        self.response_plot = ResponsePlot(show_channel_selector=True)
         self.response_tab_index = self.analysis_tabs.addTab(self.response_plot, "Response")
+        self.influence_plot = InfluencePlot()
+        self.influence_tab_index = self.analysis_tabs.addTab(self.influence_plot, "Influence")
         self.waveform_plot = WaveformPlot()
         self.waveform_tab_index = self.analysis_tabs.addTab(self.waveform_plot, "Waveform")
         self.sensitivity_plot = SensitivityPlot()
@@ -765,6 +790,7 @@ class MainWindow(_MainWindowBase):
         self.spectrum_plot = SpectrumPlot()
         self.spectrum_tab_index = self.analysis_tabs.addTab(self.spectrum_plot, "Spectrum")
         self._analysis_tab_loaders = {
+            self.influence_tab_index: self._populate_influence_view,
             self.waveform_tab_index: self._populate_waveform_view,
             self.jitter_tab_index: self._populate_jitter_table,
             self.sensitivity_tab_index: self._populate_sensitivity_view,
@@ -1001,6 +1027,7 @@ class MainWindow(_MainWindowBase):
         self.run_completion_copy_button.clicked.connect(self._copy_last_run_path)
         self.run_completion_again_button.clicked.connect(self._review_run_again)
         self.run_completion_close_button.clicked.connect(self.run_completion_banner.hide)
+        self.random_point_details_button.clicked.connect(self._show_random_point_details)
         self.analysis_open_run_button.clicked.connect(self.open_run_browser)
         self.analysis_axis_combo.currentIndexChanged.connect(self._on_single_knob_axis_changed)
         self.analysis_tabs.currentChanged.connect(self._on_analysis_tab_changed)
@@ -1878,7 +1905,7 @@ class MainWindow(_MainWindowBase):
         self.refresh_scan_preview()
         if selected_knobs:
             self.scan_panel.set_random_preview_message(
-                "Open 'Configure Ranges...' and then refresh the preview."
+                "Configure ranges, then refresh the random-point preview."
             )
         else:
             self.scan_panel.set_random_preview_message(
@@ -2649,10 +2676,14 @@ class MainWindow(_MainWindowBase):
         single_knob_axis_enabled = analysis_mode == "single_knob_scan"
         response_visible = analysis_mode in {"single_knob_scan", "multi_knob_random"}
         sensitivity_visible = analysis_mode == "single_knob_scan"
-        general_analysis_visible = analysis_mode != "single_knob_scan"
+        influence_visible = analysis_mode == "multi_knob_random"
+        general_analysis_visible = analysis_mode == "timed_acquisition"
         waveform_visible = analysis_mode == "timed_acquisition" and self._has_waveform_data
+        self.random_point_context.setVisible(analysis_mode == "multi_knob_random")
         self.run_plot_stack.setCurrentWidget(
-            self.run_response_plot if analysis_mode == "single_knob_scan" else self.trend_plot
+            self.run_response_plot
+            if analysis_mode in {"single_knob_scan", "multi_knob_random"}
+            else self.trend_plot
         )
         self._refresh_analysis_outlier_filter_affordances()
         self.analysis_axis_label.setVisible(False)
@@ -2666,6 +2697,7 @@ class MainWindow(_MainWindowBase):
         )
         self.main_tabs.setTabEnabled(self.analysis_page_index, True)
         self._set_analysis_tab_visible(self.response_tab_index, response_visible)
+        self._set_analysis_tab_visible(self.influence_tab_index, influence_visible)
         self._set_analysis_tab_visible(self.waveform_tab_index, waveform_visible)
         self._set_analysis_tab_visible(self.sensitivity_tab_index, sensitivity_visible)
         self._set_analysis_tab_visible(self.jitter_tab_index, general_analysis_visible)
@@ -2674,6 +2706,7 @@ class MainWindow(_MainWindowBase):
         self.analysis_tabs.setTabEnabled(self.jitter_tab_index, general_analysis_visible)
         self.analysis_tabs.setTabEnabled(self.correlation_tab_index, general_analysis_visible)
         self.analysis_tabs.setTabEnabled(self.spectrum_tab_index, general_analysis_visible)
+        self.analysis_tabs.setTabEnabled(self.influence_tab_index, influence_visible)
         self.analysis_tabs.setTabEnabled(self.waveform_tab_index, waveform_visible)
         sensitivity_enabled = self._has_sensitivity_data and analysis_mode == "single_knob_scan"
         self.analysis_tabs.setTabEnabled(self.sensitivity_tab_index, sensitivity_visible)
@@ -2686,6 +2719,12 @@ class MainWindow(_MainWindowBase):
         self.analysis_tabs.tabBar().setTabToolTip(self.jitter_tab_index, analysis_tooltip)
         self.analysis_tabs.tabBar().setTabToolTip(self.correlation_tab_index, analysis_tooltip)
         self.analysis_tabs.tabBar().setTabToolTip(self.spectrum_tab_index, analysis_tooltip)
+        self.analysis_tabs.tabBar().setTabToolTip(
+            self.influence_tab_index,
+            "Standardized multi-variable influence of each control PV on each read PV."
+            if influence_visible
+            else "Influence is available for Random Multi-Knob runs.",
+        )
         if analysis_mode == "single_knob_scan":
             self.analysis_tabs.tabBar().setTabToolTip(
                 self.sensitivity_tab_index,
@@ -2703,7 +2742,11 @@ class MainWindow(_MainWindowBase):
             )
 
         if analysis_mode == "timed_acquisition":
-            if self.analysis_tabs.currentIndex() in {self.response_tab_index, self.sensitivity_tab_index}:
+            if self.analysis_tabs.currentIndex() in {
+                self.response_tab_index,
+                self.sensitivity_tab_index,
+                self.influence_tab_index,
+            }:
                 self.analysis_tabs.setCurrentIndex(self.jitter_tab_index)
             if not waveform_visible and self.analysis_tabs.currentIndex() == self.waveform_tab_index:
                 self.analysis_tabs.setCurrentIndex(self.jitter_tab_index)
@@ -2715,6 +2758,7 @@ class MainWindow(_MainWindowBase):
         if analysis_mode == "single_knob_scan":
             if self.analysis_tabs.currentIndex() in {
                 self.waveform_tab_index,
+                self.influence_tab_index,
                 self.jitter_tab_index,
                 self.correlation_tab_index,
                 self.spectrum_tab_index,
@@ -2729,6 +2773,14 @@ class MainWindow(_MainWindowBase):
                 self.analysis_tabs.setCurrentIndex(self.response_tab_index)
             return
 
+        if analysis_mode == "multi_knob_random" and self.analysis_tabs.currentIndex() in {
+            self.waveform_tab_index,
+            self.sensitivity_tab_index,
+            self.jitter_tab_index,
+            self.correlation_tab_index,
+            self.spectrum_tab_index,
+        }:
+            self.analysis_tabs.setCurrentIndex(self.response_tab_index)
         self.analysis_tabs.setTabText(self.response_tab_index, "Response")
         self.analysis_tabs.tabBar().setTabToolTip(
             self.response_tab_index,
@@ -2760,6 +2812,9 @@ class MainWindow(_MainWindowBase):
         self.jitter_plot.clear_data("Open Jitter to compute statistics and inspect point-by-point data.")
         self.correlation_plot.clear_data("Open Correlation to compute the matrix for the current run.")
         self.spectrum_plot.clear_data("Open Spectrum to compute spectra for the current run.")
+        self.influence_plot.clear_data(
+            "Open Influence to estimate Random Multi-Knob control-to-response effects."
+        )
         if self.current_run_mode == RunMode.KNOB_SCAN:
             self._clear_sensitivity_table()
             self.sensitivity_plot.clear_data(
@@ -3299,8 +3354,8 @@ class MainWindow(_MainWindowBase):
         self._loaded_run_used_fast_path = False
         self._loaded_run_used_legacy_batch_reconstruction = False
         self.trend_plot.reset_channels(selected_objects)
-        self.run_response_plot.reset_channels("", "", [])
-        self.response_plot.reset_channels("Random Point Index", "", selected_objects)
+        for plot in (self.run_response_plot, self.response_plot):
+            plot.reset_channels("Random Point Index", "", selected_objects)
         self._reset_analysis_views()
         self.current_run_mode = RunMode.MULTI_KNOB_RANDOM
         self.state.run_status = RunStatus.RUNNING
@@ -3444,6 +3499,7 @@ class MainWindow(_MainWindowBase):
     def _initialize_run_status_panel(self) -> None:
         self.run_completion_banner.hide()
         self._last_saved_run_path = None
+        self._set_random_point_context(None)
         run_id = self.current_run_metadata.run_id if self.current_run_metadata is not None else "--"
         self.status_panel.set_run_id(run_id, tone="info")
         self.status_panel.set_sample("-", tone="subtle")
@@ -3607,7 +3663,9 @@ class MainWindow(_MainWindowBase):
         )
         self.current_run_steps.append(step_record)
         self.run_service.append_step(step_record)
-        self.response_plot.append_step(float(step_index + 1), step_samples)
+        for plot in (self.run_response_plot, self.response_plot):
+            plot.append_step(float(step_index + 1), step_samples)
+        self._set_random_point_context(step_record)
         self.status_panel.set_step(
             f"{step_index + 1}/{total_steps}",
             tone=self._progress_tone(step_index + 1, total_steps),
@@ -3725,6 +3783,64 @@ class MainWindow(_MainWindowBase):
         if clipboard is not None:
             clipboard.setText(str(self._last_saved_run_path))
 
+    def _show_random_point_details(self) -> None:
+        if not self._current_random_point_detail_text:
+            return
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle("Random Point Details")
+        dialog.resize(620, 420)
+        layout = QtWidgets.QVBoxLayout(dialog)
+        details = QtWidgets.QPlainTextEdit(dialog)
+        details.setReadOnly(True)
+        details.setPlainText(self._current_random_point_detail_text)
+        layout.addWidget(details)
+        buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Close, dialog)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        dialog.exec_()
+
+    def _set_random_point_context(self, step: MultiKnobStepRecord | None) -> None:
+        if step is None:
+            self._current_random_point_detail_text = ""
+            self.random_point_context_label.setText("Waiting for the first random point.")
+            self.random_point_details_button.setEnabled(False)
+            return
+
+        knobs_by_id = {
+            knob.id: knob for knob in self.loaded_config.knobs
+        } if self.loaded_config is not None else {}
+        knob_ids = list(step.target_values)
+        compact_values = []
+        detail_lines = [f"Random point {int(step.step_index) + 1}", ""]
+        for knob_id in knob_ids:
+            knob = knobs_by_id.get(knob_id)
+            name = knob.name if knob is not None else knob_id
+            unit = knob.unit if knob is not None else ""
+            target = step.target_values.get(knob_id)
+            readback = step.readback_values.get(knob_id)
+            display_value = readback if readback is not None else target
+            if display_value is not None and len(compact_values) < 3:
+                compact_values.append(f"{name}={float(display_value):.6g}{(' ' + unit) if unit else ''}")
+            target_text = "--" if target is None else f"{float(target):.6g}"
+            readback_text = "--" if readback is None else f"{float(readback):.6g}"
+            detail_lines.append(
+                f"{name}: target={target_text}, readback={readback_text}{(' ' + unit) if unit else ''}"
+            )
+
+        total_points = int(self.current_run_details.get("num_points", 0) or 0)
+        point_text = f"Point {int(step.step_index) + 1}"
+        if total_points > 0:
+            point_text += f" / {total_points}"
+        remaining = max(len(knob_ids) - len(compact_values), 0)
+        summary = " · ".join(compact_values)
+        if remaining:
+            summary += f" · +{remaining} more"
+        self.random_point_context_label.setText(
+            f"{point_text} · {summary}" if summary else point_text
+        )
+        self._current_random_point_detail_text = "\n".join(detail_lines)
+        self.random_point_details_button.setEnabled(True)
+
     def _review_run_again(self) -> None:
         self.run_completion_banner.hide()
         self.main_tabs.setCurrentIndex(self.config_tab_index)
@@ -3737,6 +3853,9 @@ class MainWindow(_MainWindowBase):
         )
         self._clear_jitter_table()
         self._clear_sensitivity_table()
+        self.influence_plot.clear_data(
+            "Run Random Multi-Knob to estimate control-to-response influence."
+        )
         self.correlation_plot.clear_data(
             "Run a task with at least two read PVs to populate the correlation matrix."
         )
@@ -3785,7 +3904,12 @@ class MainWindow(_MainWindowBase):
                 raise ValueError(
                     "Symmetric preview needs EPICS runtime. Click 'Refresh Preview' after EPICS is available."
                 ) from exc
-        result = self.epics_client.read(readback_pv)
+        try:
+            result = self.epics_client.read(readback_pv)
+        except Exception as exc:
+            raise ValueError(
+                f"Could not read current value from {knob.name} readback. Check EPICS and refresh the preview."
+            ) from exc
         if not result.connected or result.value is None:
             raise ValueError(
                 f"Could not read current value from {knob.name} readback. Click 'Refresh Preview' after connection is ready."
@@ -3854,9 +3978,14 @@ class MainWindow(_MainWindowBase):
         if self.current_run_mode == RunMode.KNOB_SCAN:
             self._refresh_single_knob_response_plot()
         elif self.current_run_mode == RunMode.MULTI_KNOB_RANDOM:
-            self.response_plot.reset_channels("Random Point Index", "", selected_objects)
-            for step in self.current_run_steps:
-                self.response_plot.append_step(float(step.step_index + 1), step.samples)
+            for plot in (self.run_response_plot, self.response_plot):
+                plot.reset_channels("Random Point Index", "", selected_objects)
+                for step in self.current_run_steps:
+                    plot.append_step(float(step.step_index + 1), step.samples)
+            last_step = self.current_run_steps[-1] if self.current_run_steps else None
+            self._set_random_point_context(
+                last_step if isinstance(last_step, MultiKnobStepRecord) else None
+            )
         else:
             self.response_plot.reset_channels("", "", [])
 
@@ -4076,6 +4205,90 @@ class MainWindow(_MainWindowBase):
             axis_summary_text=self._single_knob_axis_summary_text(),
         )
         self._set_sensitivity_available(True)
+
+    def _populate_influence_view(self) -> None:
+        if self.loaded_config is None:
+            self.influence_plot.clear_data("Load a PV library to compute Random Multi-Knob influence.")
+            return
+        if self.current_run_mode != RunMode.MULTI_KNOB_RANDOM:
+            self.influence_plot.clear_data(
+                "Influence is only available for Random Multi-Knob runs."
+            )
+            return
+
+        knob_ids = []
+        for item in self.current_run_details.get("knob_ranges", []):
+            if not isinstance(item, dict):
+                continue
+            knob_id = str(item.get("knob_id", ""))
+            if knob_id and knob_id not in knob_ids:
+                knob_ids.append(knob_id)
+        stats_rows = compute_random_multi_knob_influence(
+            [step for step in self.current_run_steps if isinstance(step, MultiKnobStepRecord)],
+            knob_ids=knob_ids,
+        )
+        if not stats_rows:
+            self.influence_plot.clear_data(
+                "Need at least two valid Random Multi-Knob points with changing control PV values."
+            )
+            return
+
+        knobs_by_id = {knob.id: knob for knob in self.loaded_config.knobs}
+        objects_by_id = {obj.id: obj for obj in self.loaded_config.objects}
+        if not knob_ids:
+            knob_ids = [item.knob_id for item in stats_rows[0].coefficients]
+        knob_names = {
+            knob_id: knobs_by_id[knob_id].name if knob_id in knobs_by_id else knob_id
+            for knob_id in knob_ids
+        }
+        stats_by_id = {row.pv_id: row for row in stats_rows}
+        selected_ids = list(self.current_run_details.get("target_object_ids", []))
+        ordered_ids = [pv_id for pv_id in selected_ids if pv_id in stats_by_id]
+        ordered_ids.extend(pv_id for pv_id in stats_by_id if pv_id not in ordered_ids)
+
+        rows = []
+        for pv_id in ordered_ids:
+            stats = stats_by_id[pv_id]
+            obj = objects_by_id.get(pv_id)
+            response_name = obj.name if obj is not None else pv_id
+            response_unit = obj.unit if obj is not None else ""
+            coefficients = {}
+            for coefficient in stats.coefficients:
+                knob = knobs_by_id.get(coefficient.knob_id)
+                knob_unit = knob.unit if knob is not None else ""
+                if response_unit and knob_unit:
+                    coefficient_unit = f"{response_unit}/{knob_unit}"
+                else:
+                    coefficient_unit = response_unit
+                coefficients[coefficient.knob_id] = {
+                    "knob_id": coefficient.knob_id,
+                    "raw": coefficient.coefficient,
+                    "standardized": coefficient.standardized_coefficient,
+                    "knob_span": coefficient.knob_span,
+                    "unit": coefficient_unit,
+                }
+            warnings = list(stats.warnings)
+            for knob_id, knob_name in knob_names.items():
+                warnings = [warning.replace(knob_id, knob_name) for warning in warnings]
+            rows.append(
+                {
+                    "pv_id": pv_id,
+                    "name": response_name,
+                    "unit": response_unit,
+                    "point_count": stats.point_count,
+                    "response_span": stats.response_span,
+                    "intercept": stats.intercept,
+                    "r_squared": stats.r_squared,
+                    "rank": stats.rank,
+                    "required_rank": stats.required_rank,
+                    "coefficients": coefficients,
+                    "response_values": list(stats.response_values),
+                    "predicted_values": list(stats.predicted_values),
+                    "warnings": warnings,
+                }
+            )
+
+        self.influence_plot.set_rows(rows, knob_ids=knob_ids, knob_names=knob_names)
 
     def _populate_correlation_view(self) -> None:
         if self.loaded_config is None:

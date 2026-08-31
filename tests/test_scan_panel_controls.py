@@ -88,3 +88,19 @@ def test_single_knob_scope_warning_only_appears_for_extra_selected_knobs(qt_app)
     panel.set_knob_choices(knobs, active_knob_id="k1")
     assert not panel.single_scope_label.isHidden()
     assert "other 1 selected" in panel.single_scope_label.text()
+
+
+def test_random_page_uses_compact_form_and_hides_advanced_options(qt_app):
+    panel = scan_panel_module.ScanPanel()
+
+    assert not hasattr(panel, "random_intro_label")
+    assert panel.random_page.findChildren(scan_panel_module.QtWidgets.QGroupBox) == []
+    assert panel.random_point_count_spin.value() == 20
+    assert panel.random_samples_per_point_spin.value() == 5
+    assert panel.random_settle_spin.value() == 1.5
+    assert panel.random_advanced_panel.isHidden()
+    assert panel.random_preview_button.text() == "Refresh"
+    assert panel.random_preview_show_button.text() == "Details"
+
+    panel.random_more_button.setChecked(True)
+    assert not panel.random_advanced_panel.isHidden()

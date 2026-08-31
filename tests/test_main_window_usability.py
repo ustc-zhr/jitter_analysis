@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -6,7 +7,7 @@ import pytest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from jitter_analysis.domain.types import RunStatus
+from jitter_analysis.domain.types import MultiKnobStepRecord, RunMode, RunStatus, SampleRecord
 from jitter_analysis.gui import main_window as main_window_module
 from jitter_analysis.gui.state import AppState
 from jitter_analysis.services.run_service import RunService
@@ -86,3 +87,68 @@ def test_single_knob_analysis_keeps_only_response_and_sensitivity_visible(window
     window.scan_panel.set_task_mode("timed_acquisition")
     window._refresh_result_tabs("timed_acquisition")
     assert window.run_plot_stack.currentWidget() is window.trend_plot
+
+    window.scan_panel.set_task_mode("multi_knob_random")
+    window._refresh_result_tabs("multi_knob_random")
+    assert window.run_plot_stack.currentWidget() is window.run_response_plot
+    assert tab_bar.isTabVisible(window.response_tab_index)
+    assert tab_bar.isTabVisible(window.influence_tab_index)
+    assert not tab_bar.isTabVisible(window.sensitivity_tab_index)
+    assert not tab_bar.isTabVisible(window.jitter_tab_index)
+    assert not tab_bar.isTabVisible(window.correlation_tab_index)
+    assert not tab_bar.isTabVisible(window.spectrum_tab_index)
+    assert window.analysis_more_button.isHidden()
+
+
+def test_random_influence_view_uses_saved_step_readbacks_and_responses(window):
+    config_path = Path(__file__).resolve().parents[1] / "configs" / "irfel_pvlist.json"
+    assert window._load_config_path(config_path)
+    knobs = window.loaded_config.knobs[:2]
+    response = window.loaded_config.objects[0]
+    points = [
+        (-2.0, -1.0),
+        (-2.0, 1.0),
+        (-1.0, -2.0),
+        (-1.0, 2.0),
+        (0.0, -1.0),
+        (0.0, 1.0),
+        (1.0, -2.0),
+        (1.0, 2.0),
+        (2.0, -1.0),
+        (2.0, 1.0),
+    ]
+    timestamp = datetime(2026, 1, 1)
+    window.current_run_steps = [
+        MultiKnobStepRecord(
+            step_index=index,
+            target_values={knobs[0].id: k1, knobs[1].id: k2},
+            readback_values={knobs[0].id: k1, knobs[1].id: k2},
+            started_at=timestamp,
+            samples=[
+                SampleRecord(
+                    response.id,
+                    3.0 * k1 - 2.0 * k2,
+                    timestamp,
+                    step_index=index,
+                )
+            ],
+        )
+        for index, (k1, k2) in enumerate(points)
+    ]
+    window.current_run_mode = RunMode.MULTI_KNOB_RANDOM
+    window.current_run_details = {
+        "knob_ranges": [{"knob_id": knob.id} for knob in knobs],
+        "target_object_ids": [response.id],
+        "num_points": len(points),
+    }
+
+    window._populate_influence_view()
+
+    assert window.influence_plot.overview_table.rowCount() == 1
+    assert window.influence_plot.matrix_table.columnCount() == 2
+    assert window.influence_plot.overview_table.item(0, 3).text() == "1"
+
+    window._set_random_point_context(window.current_run_steps[0])
+    assert "Point 1 / 10" in window.random_point_context_label.text()
+    assert knobs[0].name in window.random_point_context_label.text()
+    assert window.random_point_details_button.isEnabled()

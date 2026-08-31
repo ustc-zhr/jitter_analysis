@@ -258,25 +258,23 @@ if QtWidgets is not None:
             widget = QtWidgets.QWidget()
             layout = QtWidgets.QVBoxLayout(widget)
             layout.setContentsMargins(0, 0, 0, 0)
-            layout.setSpacing(10)
+            layout.setSpacing(0)
 
-            self.random_intro_label = QtWidgets.QLabel(
-                "<b>Random Multi-Knob</b> writes several enabled control PVs together at each random point. "
-                "Use it for multi-variable perturbation, correlation studies, and robustness scans."
-            )
-            self.random_intro_label.setWordWrap(True)
-            self.random_intro_label.setProperty("role", "pageHint")
-            layout.addWidget(self.random_intro_label)
+            form_frame = QtWidgets.QFrame()
+            form_frame.setObjectName("randomKnobForm")
+            form_layout = QtWidgets.QVBoxLayout(form_frame)
+            form_layout.setContentsMargins(14, 12, 14, 12)
+            form_layout.setSpacing(10)
 
-            ranges_box = self._create_page_section("Knob Ranges")
-            ranges_layout = QtWidgets.QVBoxLayout(ranges_box)
-            ranges_layout.setContentsMargins(12, 12, 12, 12)
-            ranges_layout.setSpacing(8)
+            knobs_title = QtWidgets.QLabel("Control PV Ranges")
+            knobs_title.setProperty("role", "formSectionTitle")
+            form_layout.addWidget(knobs_title)
 
             self.random_scope_label = QtWidgets.QLabel(
                 "Writes: all enabled control PVs together at each point. Disabled control PVs stay fixed."
             )
             self.random_scope_label.setWordWrap(True)
+            self.random_scope_label.setProperty("role", "context")
 
             self.random_config_summary_label = QtWidgets.QLabel(
                 "Choose control PVs, then configure the ranges used for random sampling."
@@ -286,16 +284,15 @@ if QtWidgets is not None:
             self._apply_button_role(self.random_config_button, "control")
             range_actions = QtWidgets.QHBoxLayout()
             range_actions.setSpacing(8)
+            range_actions.addWidget(self.random_config_summary_label, 1)
             range_actions.addWidget(self.random_config_button)
-            range_actions.addStretch(1)
-            ranges_layout.addWidget(self.random_config_summary_label)
-            ranges_layout.addLayout(range_actions)
-            ranges_layout.addWidget(self.random_scope_label)
-            layout.addWidget(ranges_box)
+            form_layout.addLayout(range_actions)
+            form_layout.addWidget(self.random_scope_label)
+            form_layout.addWidget(self._single_form_separator())
 
-            sampling_box = self._create_page_section("Sampling Plan")
-            form = QtWidgets.QFormLayout(sampling_box)
-            self._configure_form_layout(form)
+            sampling_title = QtWidgets.QLabel("Sampling Plan")
+            sampling_title.setProperty("role", "formSectionTitle")
+            form_layout.addWidget(sampling_title)
             self.random_distribution_combo = QtWidgets.QComboBox()
             self.random_distribution_combo.addItem("Uniform", "uniform")
             self.random_distribution_combo.addItem("Normal (Clipped)", "normal_clipped")
@@ -303,21 +300,28 @@ if QtWidgets is not None:
                 "Uniform covers the whole range evenly. Normal (Clipped) prefers the center and clips at the bounds."
             )
             self.random_distribution_help_label.setWordWrap(True)
+            self.random_distribution_help_label.setProperty("role", "context")
             self.random_point_count_spin = QtWidgets.QSpinBox()
             self.random_point_count_spin.setRange(1, 1000000)
             self.random_point_count_spin.setValue(20)
             self.random_samples_per_point_spin = QtWidgets.QSpinBox()
             self.random_samples_per_point_spin.setRange(1, 1000000)
             self.random_samples_per_point_spin.setValue(5)
-            form.addRow("Sampling Distribution", self.random_distribution_combo)
-            form.addRow("", self.random_distribution_help_label)
-            form.addRow("Random Points", self.random_point_count_spin)
-            form.addRow("Samples / Point", self.random_samples_per_point_spin)
-            layout.addWidget(sampling_box)
+            sampling_row = QtWidgets.QHBoxLayout()
+            sampling_row.setSpacing(10)
+            sampling_row.addWidget(
+                self._compact_field("Distribution", self.random_distribution_combo), 1
+            )
+            sampling_row.addWidget(
+                self._compact_field("Random Points", self.random_point_count_spin), 1
+            )
+            sampling_row.addWidget(
+                self._compact_field("Samples / Point", self.random_samples_per_point_spin), 1
+            )
+            form_layout.addLayout(sampling_row)
 
-            advanced_box = self._create_page_section("Acquisition")
-            advanced_form = QtWidgets.QFormLayout(advanced_box)
-            self._configure_form_layout(advanced_form)
+            acquisition_row = QtWidgets.QHBoxLayout()
+            acquisition_row.setSpacing(10)
             self.random_settle_spin = QtWidgets.QDoubleSpinBox()
             self.random_settle_spin.setRange(0.0, 3600.0)
             self.random_settle_spin.setDecimals(3)
@@ -330,37 +334,55 @@ if QtWidgets is not None:
             self.random_seed_edit.setPlaceholderText("Leave empty for auto-generated seed")
             self.random_restore_check = QtWidgets.QCheckBox("Restore initial knob values after sampling")
             self.random_restore_check.setChecked(True)
-            advanced_form.addRow("Settle Delay [s]", self.random_settle_spin)
-            advanced_form.addRow("Sample Interval [s]", self.random_sample_interval_spin)
-            advanced_form.addRow("Seed", self.random_seed_edit)
-            advanced_form.addRow("", self.random_restore_check)
-            layout.addWidget(advanced_box)
+            acquisition_row.addWidget(
+                self._compact_field("Settle Delay [s]", self.random_settle_spin), 1
+            )
+            acquisition_row.addWidget(
+                self._compact_field("Sample Interval [s]", self.random_sample_interval_spin), 1
+            )
+            form_layout.addLayout(acquisition_row)
+            form_layout.addWidget(self.random_restore_check)
 
-            preview_box = self._create_page_section("Preview")
-            preview_layout = QtWidgets.QVBoxLayout(preview_box)
-            preview_layout.setContentsMargins(12, 12, 12, 12)
+            self.random_more_button = QtWidgets.QPushButton("More")
+            self.random_more_button.setCheckable(True)
+            self.random_more_button.setProperty("role", "diagnostic")
+            self.random_more_button.setFixedWidth(92)
+            form_layout.addWidget(self.random_more_button, 0, QtCore.Qt.AlignLeft)
+            self.random_advanced_panel = QtWidgets.QWidget()
+            advanced_layout = QtWidgets.QVBoxLayout(self.random_advanced_panel)
+            advanced_layout.setContentsMargins(0, 0, 0, 0)
+            advanced_layout.setSpacing(8)
+            advanced_layout.addWidget(self.random_distribution_help_label)
+            advanced_layout.addWidget(self._compact_field("Seed", self.random_seed_edit))
+            self.random_advanced_panel.setVisible(False)
+            form_layout.addWidget(self.random_advanced_panel)
+            form_layout.addWidget(self._single_form_separator())
+
+            preview_bar = QtWidgets.QFrame()
+            preview_bar.setObjectName("randomPreviewSummary")
+            preview_layout = QtWidgets.QHBoxLayout(preview_bar)
+            preview_layout.setContentsMargins(10, 7, 8, 7)
             preview_layout.setSpacing(8)
-            self.random_preview_button = QtWidgets.QPushButton("Refresh Preview")
-            self.random_preview_show_button = QtWidgets.QPushButton("Show Details")
+            self.random_preview_button = QtWidgets.QPushButton("Refresh")
+            self.random_preview_show_button = QtWidgets.QPushButton("Details")
             self.random_preview_show_button.setEnabled(False)
             self._apply_button_role(self.random_preview_button, "diagnostic")
             self._apply_button_role(self.random_preview_show_button, "diagnostic")
-            preview_actions = QtWidgets.QHBoxLayout()
-            preview_actions.setSpacing(8)
-            preview_actions.addWidget(self.random_preview_button)
-            preview_actions.addWidget(self.random_preview_show_button)
-            preview_actions.addStretch(1)
             self.random_preview_summary_label = QtWidgets.QLabel(
                 "Configure ranges, then preview generated random points."
             )
             self.random_preview_summary_label.setWordWrap(True)
-            preview_layout.addLayout(preview_actions)
-            preview_layout.addWidget(self.random_preview_summary_label)
-            layout.addWidget(preview_box)
+            preview_layout.addWidget(self.random_preview_summary_label, 1)
+            preview_layout.addWidget(self.random_preview_button)
+            preview_layout.addWidget(self.random_preview_show_button)
+            form_layout.addWidget(preview_bar)
+
+            layout.addWidget(form_frame)
             layout.addStretch(1)
             self.random_preview_show_button.clicked.connect(
                 lambda: self._show_text_dialog("Random Multi-Knob Preview", self._random_preview_text)
             )
+            self.random_more_button.toggled.connect(self.random_advanced_panel.setVisible)
             self.random_distribution_combo.currentIndexChanged.connect(self._update_random_distribution_help)
             self._update_random_distribution_help()
             return widget
@@ -798,14 +820,26 @@ if QtWidgets is not None:
                     "Writes: all enabled control PVs together at each point. Disabled control PVs stay fixed."
                 )
                 return
-            self.random_config_summary_label.setText(
-                f"{enabled}/{total} control PV(s) enabled. Open 'Configure Ranges...' to edit bounds."
-            )
+            ready_ranges = 0
+            for row in self._random_knob_state.values():
+                if not row.get("enabled", True):
+                    continue
+                try:
+                    low = float(row.get("low_text", ""))
+                    high = float(row.get("high_text", ""))
+                except (TypeError, ValueError):
+                    continue
+                if low < high:
+                    ready_ranges += 1
             if enabled <= 0:
+                self.random_config_summary_label.setText("No control PVs enabled")
                 self.random_scope_label.setText(
                     "No control PVs are enabled yet. Random Multi-Knob only writes the rows enabled in 'Configure Ranges...'."
                 )
             else:
+                self.random_config_summary_label.setText(
+                    f"{enabled} enabled · {ready_ranges}/{enabled} ranges ready"
+                )
                 self.random_scope_label.setText(
                     f"Writes: {enabled} enabled control PV(s) together at each random point. "
                     "Disabled control PVs stay fixed."
