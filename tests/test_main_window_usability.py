@@ -93,11 +93,31 @@ def test_single_knob_analysis_keeps_only_response_and_sensitivity_visible(window
     assert window.run_plot_stack.currentWidget() is window.run_response_plot
     assert tab_bar.isTabVisible(window.response_tab_index)
     assert tab_bar.isTabVisible(window.influence_tab_index)
+    assert not tab_bar.isTabVisible(window.response_map_tab_index)
     assert not tab_bar.isTabVisible(window.sensitivity_tab_index)
     assert not tab_bar.isTabVisible(window.jitter_tab_index)
     assert not tab_bar.isTabVisible(window.correlation_tab_index)
     assert not tab_bar.isTabVisible(window.spectrum_tab_index)
     assert window.analysis_more_button.isHidden()
+
+
+def test_grid_response_map_is_only_visible_for_two_changing_control_pvs(window):
+    window.current_run_details = {
+        "sampling_method": "grid",
+        "knob_ranges": [
+            {"knob_id": "k1", "low": -1.0, "high": 1.0},
+            {"knob_id": "k2", "low": 0.0, "high": 2.0},
+            {"knob_id": "fixed", "low": 3.0, "high": 3.0},
+        ],
+    }
+    window._refresh_result_tabs("multi_knob_random")
+    assert window.analysis_tabs.tabBar().isTabVisible(window.response_map_tab_index)
+
+    window.current_run_details["knob_ranges"].append(
+        {"knob_id": "k3", "low": -2.0, "high": 2.0}
+    )
+    window._refresh_result_tabs("multi_knob_random")
+    assert not window.analysis_tabs.tabBar().isTabVisible(window.response_map_tab_index)
 
 
 def test_random_influence_view_uses_saved_step_readbacks_and_responses(window):

@@ -277,7 +277,7 @@ if QtWidgets is not None:
             self.random_scope_label.setProperty("role", "context")
 
             self.random_config_summary_label = QtWidgets.QLabel(
-                "Choose control PVs, then configure the ranges used for random sampling."
+                "Choose control PVs, then configure the sampling ranges."
             )
             self.random_config_summary_label.setWordWrap(True)
             self.random_config_button = QtWidgets.QPushButton("Configure Ranges...")
@@ -293,30 +293,44 @@ if QtWidgets is not None:
             sampling_title = QtWidgets.QLabel("Sampling Plan")
             sampling_title.setProperty("role", "formSectionTitle")
             form_layout.addWidget(sampling_title)
-            self.random_distribution_combo = QtWidgets.QComboBox()
-            self.random_distribution_combo.addItem("Uniform", "uniform")
-            self.random_distribution_combo.addItem("Normal (Clipped)", "normal_clipped")
-            self.random_distribution_combo.setToolTip(
-                "Uniform samples the full configured range. Normal (Clipped) favors the center and clips at the bounds."
+            self.random_sampling_method_combo = QtWidgets.QComboBox()
+            self.random_sampling_method_combo.addItem("Uniform Random", "uniform_random")
+            self.random_sampling_method_combo.addItem("Grid", "grid")
+            self.random_sampling_method_combo.setToolTip(
+                "Uniform Random scales to many control PVs and is recommended for Influence. "
+                "Grid reveals response surfaces for up to 3 changing control PVs."
             )
+            # Compatibility alias for integrations that referenced the old widget name.
+            self.random_distribution_combo = self.random_sampling_method_combo
             self.random_point_count_spin = QtWidgets.QSpinBox()
             self.random_point_count_spin.setRange(1, 1000000)
             self.random_point_count_spin.setValue(20)
+            self.random_levels_spin = QtWidgets.QSpinBox()
+            self.random_levels_spin.setRange(2, 100)
+            self.random_levels_spin.setValue(3)
+            self.random_count_stack = QtWidgets.QStackedWidget()
+            self.random_count_stack.addWidget(
+                self._compact_field("Random Points", self.random_point_count_spin)
+            )
+            self.random_count_stack.addWidget(
+                self._compact_field("Levels / Knob", self.random_levels_spin)
+            )
             self.random_samples_per_point_spin = QtWidgets.QSpinBox()
             self.random_samples_per_point_spin.setRange(1, 1000000)
             self.random_samples_per_point_spin.setValue(5)
             sampling_row = QtWidgets.QHBoxLayout()
             sampling_row.setSpacing(10)
             sampling_row.addWidget(
-                self._compact_field("Distribution", self.random_distribution_combo), 1
+                self._compact_field("Sampling Method", self.random_sampling_method_combo), 1
             )
-            sampling_row.addWidget(
-                self._compact_field("Random Points", self.random_point_count_spin), 1
-            )
+            sampling_row.addWidget(self.random_count_stack, 1)
             sampling_row.addWidget(
                 self._compact_field("Samples / Point", self.random_samples_per_point_spin), 1
             )
             form_layout.addLayout(sampling_row)
+            self.random_grid_summary_label = QtWidgets.QLabel()
+            self.random_grid_summary_label.setProperty("role", "context")
+            form_layout.addWidget(self.random_grid_summary_label)
 
             acquisition_row = QtWidgets.QHBoxLayout()
             acquisition_row.setSpacing(10)
@@ -351,7 +365,7 @@ if QtWidgets is not None:
             self._apply_button_role(self.random_preview_button, "diagnostic")
             self._apply_button_role(self.random_preview_show_button, "diagnostic")
             self.random_preview_summary_label = QtWidgets.QLabel(
-                "Configure ranges, then preview generated random points."
+                "Configure ranges, then preview generated scan points."
             )
             self.random_preview_summary_label.setWordWrap(True)
             preview_layout.addWidget(self.random_preview_summary_label, 1)
@@ -362,9 +376,43 @@ if QtWidgets is not None:
             layout.addWidget(form_frame)
             layout.addStretch(1)
             self.random_preview_show_button.clicked.connect(
-                lambda: self._show_text_dialog("Random Multi-Knob Preview", self._random_preview_text)
+                lambda: self._show_text_dialog("Multi-Knob Preview", self._random_preview_text)
             )
+            self.random_sampling_method_combo.currentIndexChanged.connect(
+                self._update_random_sampling_method
+            )
+            self.random_levels_spin.valueChanged.connect(self._update_random_sampling_method)
+            self._update_random_sampling_method()
             return widget
+
+        def _update_random_sampling_method(self, *_args) -> None:
+            is_grid = self.random_sampling_method_combo.currentData() == "grid"
+            self.random_count_stack.setCurrentIndex(1 if is_grid else 0)
+            self.random_grid_summary_label.setVisible(is_grid)
+            if is_grid:
+                varying = 0
+                for row in self._random_knob_state.values():
+                    if not row.get("enabled", True):
+                        continue
+                    try:
+                        if float(row.get("low_text", "")) != float(row.get("high_text", "")):
+                            varying += 1
+                    except (TypeError, ValueError):
+                        continue
+                levels = int(self.random_levels_spin.value())
+                total_points = levels**varying if varying else 1
+                if varying > 3:
+                    text = f"{varying} changing control PVs · Grid supports at most 3"
+                elif total_points > 1000:
+                    text = f"{varying} changing control PVs · {total_points} total points (maximum 1000)"
+                else:
+                    text = f"{varying} changing control PVs · {total_points} total grid points"
+                self.random_grid_summary_label.setText(text)
+            self.random_restore_check.setText(
+                "Restore initial knob values after scan"
+                if is_grid
+                else "Restore initial knob values after sampling"
+            )
 
         def _build_manual_scan_value_page(self):
             widget = QtWidgets.QWidget()
@@ -478,6 +526,7 @@ if QtWidgets is not None:
             active_knob = self._knobs_by_id.get(active_knob_id or self.selected_knob_id() or "")
             self._update_single_scope_summary(active_knob)
             self._update_random_summary()
+            self._update_random_sampling_method()
 
         def selected_knob_id(self) -> str | None:
             value = self.active_knob_combo.currentData()
@@ -510,10 +559,11 @@ if QtWidgets is not None:
             return self._knob_modes_enabled
 
         def random_configuration(self) -> dict[str, object]:
-            distribution = self.random_distribution_combo.currentData()
+            sampling_method = self.random_sampling_method_combo.currentData()
             return {
-                "distribution": str(distribution) if distribution else "uniform",
+                "sampling_method": str(sampling_method) if sampling_method else "uniform_random",
                 "num_points": int(self.random_point_count_spin.value()),
+                "levels_per_knob": int(self.random_levels_spin.value()),
                 "settle_delay_sec": float(self.random_settle_spin.value()),
                 "shot_interval_sec": float(self.random_sample_interval_spin.value()),
                 "sample_count_per_point": int(self.random_samples_per_point_spin.value()),
@@ -558,6 +608,7 @@ if QtWidgets is not None:
                     "high_text": str(row.get("high_text", f"{float(knob.limits.high):.6g}")),
                 }
             self._update_random_summary()
+            self._update_random_sampling_method()
 
         def scan_value_mode(self) -> str:
             value = self.scan_value_mode_combo.currentData()
@@ -656,13 +707,19 @@ if QtWidgets is not None:
                 self.restore_check.setChecked(bool(config["restore_initial_value"]))
 
         def apply_random_configuration(self, config: dict[str, object]) -> None:
-            distribution = str(config.get("distribution", "")).strip()
-            if distribution:
-                index = self.random_distribution_combo.findData(distribution)
+            sampling_method = str(config.get("sampling_method", "")).strip()
+            if not sampling_method:
+                legacy_distribution = str(config.get("distribution", "")).strip()
+                if legacy_distribution:
+                    sampling_method = "uniform_random"
+            if sampling_method:
+                index = self.random_sampling_method_combo.findData(sampling_method)
                 if index >= 0:
-                    self.random_distribution_combo.setCurrentIndex(index)
+                    self.random_sampling_method_combo.setCurrentIndex(index)
             if "num_points" in config:
                 self.random_point_count_spin.setValue(int(config["num_points"]))
+            if "levels_per_knob" in config:
+                self.random_levels_spin.setValue(int(config["levels_per_knob"]))
             if "sample_count_per_point" in config:
                 self.random_samples_per_point_spin.setValue(int(config["sample_count_per_point"]))
             if "settle_delay_sec" in config:
@@ -787,7 +844,7 @@ if QtWidgets is not None:
             enabled = sum(1 for row in self._random_knob_state.values() if row.get("enabled", True))
             if total <= 0:
                 self.random_config_summary_label.setText(
-                    "Choose control PVs to enable Random Multi-Knob."
+                    "Choose control PVs to enable Multi-Knob."
                 )
                 self.random_scope_label.setText(
                     "Writes: all enabled control PVs together at each point. Disabled control PVs stay fixed."
@@ -807,14 +864,14 @@ if QtWidgets is not None:
             if enabled <= 0:
                 self.random_config_summary_label.setText("No control PVs enabled")
                 self.random_scope_label.setText(
-                    "No control PVs are enabled yet. Random Multi-Knob only writes the rows enabled in 'Configure Ranges...'."
+                    "No control PVs are enabled yet. Multi-Knob only writes the rows enabled in 'Configure Ranges...'."
                 )
             else:
                 self.random_config_summary_label.setText(
                     f"{enabled} enabled · {ready_ranges}/{enabled} ranges ready"
                 )
                 self.random_scope_label.setText(
-                    f"Writes: {enabled} enabled control PV(s) together at each random point. "
+                    f"Writes: {enabled} enabled control PV(s) together at each scan point. "
                     "Disabled control PVs stay fixed."
                 )
 

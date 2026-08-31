@@ -102,4 +102,10 @@ def test_random_page_uses_compact_form_and_hides_advanced_options(qt_app):
     assert panel.random_preview_show_button.text() == "Details"
     assert not hasattr(panel, "random_seed_edit")
     assert not hasattr(panel, "random_more_button")
-    assert "Uniform samples" in panel.random_distribution_combo.toolTip()
+    assert panel.random_sampling_method_combo.count() == 2
+    assert panel.random_sampling_method_combo.itemData(0) == "uniform_random"
+    assert panel.random_sampling_method_combo.itemData(1) == "grid"
+    assert "Influence" in panel.random_sampling_method_combo.toolTip()
+    panel.random_sampling_method_combo.setCurrentIndex(1)
+    assert panel.random_count_stack.currentIndex() == 1
+    assert panel.random_levels_spin.value() == 3

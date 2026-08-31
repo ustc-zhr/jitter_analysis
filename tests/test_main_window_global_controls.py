@@ -59,8 +59,8 @@ def test_run_controls_are_persistent_children_of_the_app_header(qt_app, monkeypa
 
     window.scan_panel.set_task_mode("multi_knob_random")
     window._refresh_ui_affordances()
-    assert window.global_mode_status_label.text() == "MODE  Random Multi-Knob"
-    assert window.run_start_button.text() == "Start Random Scan"
+    assert window.global_mode_status_label.text() == "MODE  Multi-Knob"
+    assert window.run_start_button.text() == "Start Multi-Knob Scan"
 
     window._set_connection_status("Connected (3/3 connected)", tone="success")
     assert window.global_epics_status_label.text() == "●  EPICS  Connected (3/3 connected)"

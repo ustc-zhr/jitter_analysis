@@ -52,7 +52,7 @@ def test_mode_and_tone_helpers():
 def test_start_action_text_follows_selected_mode():
     assert start_action_text("timed_acquisition") == "Start Monitor"
     assert start_action_text("single_knob_scan") == "Start Single-Knob Scan"
-    assert start_action_text("multi_knob_random") == "Start Random Scan"
+    assert start_action_text("multi_knob_random") == "Start Multi-Knob Scan"
     assert start_action_text("unknown") == "Start"
 
 
@@ -190,7 +190,7 @@ def test_mode_ready_state_for_random_multi_knob_mode():
         selected_knob_count=1,
         active_knob_available=True,
         random_ranges_valid=True,
-    ) == (True, "Ready to start Random Multi-Knob.")
+    ) == (True, "Ready to start Multi-Knob.")
 
 
 def test_single_knob_axis_helpers():

@@ -235,7 +235,7 @@ if QtWidgets is not None:
             state = self.selected_state()
             enabled = sum(1 for row in state.values() if row["enabled"])
             self.status_label.setText(
-                f"{enabled}/{len(self._knobs)} knob(s) enabled for random sampling."
+                f"{enabled}/{len(self._knobs)} control PV(s) enabled for Multi-Knob sampling."
             )
 
 else:

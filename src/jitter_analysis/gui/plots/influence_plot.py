@@ -26,7 +26,7 @@ if QtWidgets is not None:
 
             layout = QtWidgets.QVBoxLayout(self)
             self.summary_label = QtWidgets.QLabel(
-                "Run Random Multi-Knob to estimate each control PV's influence on the selected read PVs."
+                "Run Multi-Knob to estimate each control PV's influence on the selected read PVs."
             )
             self.summary_label.setWordWrap(True)
             layout.addWidget(self.summary_label)
@@ -107,7 +107,7 @@ if QtWidgets is not None:
             self._knob_ids = list(knob_ids)
             self._knob_names = dict(knob_names)
             if not self._rows or not self._knob_ids:
-                self.clear_data("Not enough valid Random Multi-Knob points to estimate influence.")
+                self.clear_data("Not enough valid Multi-Knob points to estimate influence.")
                 return
 
             warning_count = sum(bool(row.get("warnings")) for row in self._rows)
