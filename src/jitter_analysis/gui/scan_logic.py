@@ -3,16 +3,6 @@ from __future__ import annotations
 import random
 
 
-def resolve_random_seed(seed_text: str, default_seed: int) -> tuple[int, bool]:
-    text = str(seed_text).strip()
-    if not text:
-        return int(default_seed), True
-    try:
-        return int(text), False
-    except ValueError as exc:
-        raise ValueError("Seed must be an integer.") from exc
-
-
 def collect_random_knob_ranges(selected_knobs, rows):
     selected_by_id = {knob.id: knob for knob in selected_knobs}
     knob_ranges = []
@@ -121,7 +111,7 @@ def generate_random_targets(knob_ranges, distribution: str, num_points: int, see
     return target_steps
 
 
-def random_preview_payload(knob_ranges, target_steps, distribution: str, seed: int, preview_limit: int = 20):
+def random_preview_payload(knob_ranges, target_steps, distribution: str, preview_limit: int = 20):
     preview_count = min(len(target_steps), int(preview_limit))
     lines = []
     for index in range(preview_count):
@@ -136,7 +126,7 @@ def random_preview_payload(knob_ranges, target_steps, distribution: str, seed: i
 
     summary = (
         f"{len(target_steps)} random point(s) across {len(knob_ranges)} knob(s)"
-        f"  |  distribution={distribution}  |  seed={seed}"
+        f"  |  distribution={distribution}"
     )
     detail = ", ".join(
         f"{spec['knob'].name}[{spec['low']:.6g}, {spec['high']:.6g}]"

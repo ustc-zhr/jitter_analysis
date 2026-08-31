@@ -241,7 +241,6 @@ def test_loaded_run_parameter_updates_for_random_multi_knob():
         "shot_interval_sec": 0.1,
         "sample_count_per_point": 4,
         "num_points": 9,
-        "seed": "123",
         "restore_initial_values": False,
         "distribution": "uniform",
         "knob_state": {

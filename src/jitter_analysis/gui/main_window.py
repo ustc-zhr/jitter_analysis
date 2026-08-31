@@ -65,7 +65,6 @@ if __package__ in {None, ""}:
         generate_values_by_step,
         parse_manual_scan_values,
         random_preview_payload,
-        resolve_random_seed,
         single_knob_preview_payload,
     )
     from jitter_analysis.gui.series_logic import (
@@ -159,7 +158,6 @@ else:
         generate_values_by_step,
         parse_manual_scan_values,
         random_preview_payload,
-        resolve_random_seed,
         single_knob_preview_payload,
     )
     from .series_logic import (
@@ -271,6 +269,7 @@ class MainWindow(_MainWindowBase):
         self._last_connection_summary_text = "Not checked"
         self._last_saved_run_path: Path | None = None
         self._setup_action_key: str | None = None
+        self._random_preview_seed: int | None = None
         apply_plot_theme(current_theme_id(QtWidgets.QApplication.instance()))
         self.setWindowTitle("Jitter Analysis")
         self.resize(1540, 900)
@@ -1047,6 +1046,12 @@ class MainWindow(_MainWindowBase):
         self.scan_panel.active_knob_combo.currentIndexChanged.connect(self._sync_knob_from_combo)
         self.scan_panel.random_config_button.clicked.connect(self.open_random_knob_config_dialog)
         self.scan_panel.random_preview_button.clicked.connect(self.refresh_random_preview)
+        self.scan_panel.random_distribution_combo.currentIndexChanged.connect(
+            self._invalidate_random_preview_seed
+        )
+        self.scan_panel.random_point_count_spin.valueChanged.connect(
+            self._invalidate_random_preview_seed
+        )
         self.correlation_plot.highlightRequested.connect(self._highlight_correlation_point)
         self.waveform_plot.viewChanged.connect(self._on_waveform_view_changed)
         for mode, button in self.mode_buttons.items():
@@ -1769,8 +1774,6 @@ class MainWindow(_MainWindowBase):
             self.scan_panel.random_samples_per_point_spin.setValue(updates["sample_count_per_point"])
         if "num_points" in updates:
             self.scan_panel.random_point_count_spin.setValue(updates["num_points"])
-        if "seed" in updates:
-            self.scan_panel.random_seed_edit.setText(updates["seed"])
         if "restore_initial_values" in updates:
             self.scan_panel.random_restore_check.setChecked(updates["restore_initial_values"])
         if "distribution" in updates:
@@ -1857,6 +1860,7 @@ class MainWindow(_MainWindowBase):
         self.append_log("Cleared selected PVs.")
 
     def _refresh_selected_pvs(self) -> None:
+        self._invalidate_random_preview_seed()
         if self.loaded_config is None:
             self.object_panel.set_selected_knobs([])
             self.object_panel.set_selected_objects([])
@@ -1995,6 +1999,7 @@ class MainWindow(_MainWindowBase):
             return
 
         self.scan_panel.set_random_knob_state(dialog.selected_state())
+        self._invalidate_random_preview_seed()
         self.scan_panel.set_random_preview_message(
             "Ranges updated. Refresh the preview to inspect generated random points."
         )
@@ -2008,7 +2013,8 @@ class MainWindow(_MainWindowBase):
         try:
             knob_ranges = self._collect_random_knob_ranges()
             config = self.scan_panel.random_configuration()
-            seed = self._ensure_random_seed(config["seed_text"])
+            seed = self._new_random_seed()
+            self._random_preview_seed = seed
             target_steps = self._generate_random_targets(
                 knob_ranges,
                 distribution=str(config["distribution"]),
@@ -2023,9 +2029,7 @@ class MainWindow(_MainWindowBase):
             knob_ranges,
             target_steps,
             distribution=str(config["distribution"]),
-            seed=seed,
         )
-        self.scan_panel.set_random_seed(seed)
         self.scan_panel.set_random_preview(
             preview["lines"],
             summary=preview["summary"],
@@ -2857,14 +2861,12 @@ class MainWindow(_MainWindowBase):
             self._analysis_tab_loading = None
         self._analysis_tab_loaded[tab_index] = True
 
-    def _ensure_random_seed(self, seed_text: str) -> int:
-        seed, generated = resolve_random_seed(
-            seed_text,
-            int(QtCore.QDateTime.currentMSecsSinceEpoch()),
-        )
-        if generated:
-            self.scan_panel.set_random_seed(seed)
-        return seed
+    @staticmethod
+    def _new_random_seed() -> int:
+        return int(QtCore.QDateTime.currentMSecsSinceEpoch())
+
+    def _invalidate_random_preview_seed(self, *_args) -> None:
+        self._random_preview_seed = None
 
     def _collect_random_knob_ranges(self):
         return collect_random_knob_ranges(
@@ -3045,6 +3047,7 @@ class MainWindow(_MainWindowBase):
         self.current_run_metadata = self._create_run_metadata_or_warn(RunMode.TIMED_ACQUISITION, "Monitor")
         if self.current_run_metadata is None:
             return
+        self._random_preview_seed = None
 
         self.current_run_records = []
         self.current_run_steps = []
@@ -3271,7 +3274,9 @@ class MainWindow(_MainWindowBase):
         try:
             knob_ranges = self._collect_random_knob_ranges()
             config = self.scan_panel.random_configuration()
-            seed = self._ensure_random_seed(str(config["seed_text"]))
+            seed = self._random_preview_seed
+            if seed is None:
+                seed = self._new_random_seed()
             target_steps = self._generate_random_targets(
                 knob_ranges,
                 distribution=str(config["distribution"]),
@@ -3324,6 +3329,7 @@ class MainWindow(_MainWindowBase):
         )
         if self.current_run_metadata is None:
             return
+        self._random_preview_seed = None
 
         self.current_run_records = []
         self.current_run_steps = []

@@ -296,11 +296,9 @@ if QtWidgets is not None:
             self.random_distribution_combo = QtWidgets.QComboBox()
             self.random_distribution_combo.addItem("Uniform", "uniform")
             self.random_distribution_combo.addItem("Normal (Clipped)", "normal_clipped")
-            self.random_distribution_help_label = QtWidgets.QLabel(
-                "Uniform covers the whole range evenly. Normal (Clipped) prefers the center and clips at the bounds."
+            self.random_distribution_combo.setToolTip(
+                "Uniform samples the full configured range. Normal (Clipped) favors the center and clips at the bounds."
             )
-            self.random_distribution_help_label.setWordWrap(True)
-            self.random_distribution_help_label.setProperty("role", "context")
             self.random_point_count_spin = QtWidgets.QSpinBox()
             self.random_point_count_spin.setRange(1, 1000000)
             self.random_point_count_spin.setValue(20)
@@ -330,8 +328,6 @@ if QtWidgets is not None:
             self.random_sample_interval_spin.setRange(0.0, 3600.0)
             self.random_sample_interval_spin.setDecimals(3)
             self.random_sample_interval_spin.setValue(0.0)
-            self.random_seed_edit = QtWidgets.QLineEdit()
-            self.random_seed_edit.setPlaceholderText("Leave empty for auto-generated seed")
             self.random_restore_check = QtWidgets.QCheckBox("Restore initial knob values after sampling")
             self.random_restore_check.setChecked(True)
             acquisition_row.addWidget(
@@ -342,20 +338,6 @@ if QtWidgets is not None:
             )
             form_layout.addLayout(acquisition_row)
             form_layout.addWidget(self.random_restore_check)
-
-            self.random_more_button = QtWidgets.QPushButton("More")
-            self.random_more_button.setCheckable(True)
-            self.random_more_button.setProperty("role", "diagnostic")
-            self.random_more_button.setFixedWidth(92)
-            form_layout.addWidget(self.random_more_button, 0, QtCore.Qt.AlignLeft)
-            self.random_advanced_panel = QtWidgets.QWidget()
-            advanced_layout = QtWidgets.QVBoxLayout(self.random_advanced_panel)
-            advanced_layout.setContentsMargins(0, 0, 0, 0)
-            advanced_layout.setSpacing(8)
-            advanced_layout.addWidget(self.random_distribution_help_label)
-            advanced_layout.addWidget(self._compact_field("Seed", self.random_seed_edit))
-            self.random_advanced_panel.setVisible(False)
-            form_layout.addWidget(self.random_advanced_panel)
             form_layout.addWidget(self._single_form_separator())
 
             preview_bar = QtWidgets.QFrame()
@@ -382,9 +364,6 @@ if QtWidgets is not None:
             self.random_preview_show_button.clicked.connect(
                 lambda: self._show_text_dialog("Random Multi-Knob Preview", self._random_preview_text)
             )
-            self.random_more_button.toggled.connect(self.random_advanced_panel.setVisible)
-            self.random_distribution_combo.currentIndexChanged.connect(self._update_random_distribution_help)
-            self._update_random_distribution_help()
             return widget
 
         def _build_manual_scan_value_page(self):
@@ -538,7 +517,6 @@ if QtWidgets is not None:
                 "settle_delay_sec": float(self.random_settle_spin.value()),
                 "shot_interval_sec": float(self.random_sample_interval_spin.value()),
                 "sample_count_per_point": int(self.random_samples_per_point_spin.value()),
-                "seed_text": self.random_seed_edit.text().strip(),
                 "restore_initial_values": bool(self.random_restore_check.isChecked()),
             }
 
@@ -580,9 +558,6 @@ if QtWidgets is not None:
                     "high_text": str(row.get("high_text", f"{float(knob.limits.high):.6g}")),
                 }
             self._update_random_summary()
-
-        def set_random_seed(self, seed: int) -> None:
-            self.random_seed_edit.setText(str(seed))
 
         def scan_value_mode(self) -> str:
             value = self.scan_value_mode_combo.currentData()
@@ -694,8 +669,6 @@ if QtWidgets is not None:
                 self.random_settle_spin.setValue(float(config["settle_delay_sec"]))
             if "shot_interval_sec" in config:
                 self.random_sample_interval_spin.setValue(float(config["shot_interval_sec"]))
-            if "seed_text" in config:
-                self.random_seed_edit.setText(str(config["seed_text"]))
             if "restore_initial_values" in config:
                 self.random_restore_check.setChecked(bool(config["restore_initial_values"]))
 
@@ -860,17 +833,6 @@ if QtWidgets is not None:
                 f"Only {knob.name} will move; the other {other_count} selected control PV(s) stay fixed."
             )
             self.single_scope_label.setVisible(True)
-
-        def _update_random_distribution_help(self) -> None:
-            mode = str(self.random_distribution_combo.currentData() or "uniform")
-            if mode == "normal_clipped":
-                self.random_distribution_help_label.setText(
-                    "Normal (Clipped) concentrates points near the middle of each range and clips values at the low/high bounds."
-                )
-                return
-            self.random_distribution_help_label.setText(
-                "Uniform samples each enabled control PV evenly across its configured low/high range."
-            )
 
         def _show_text_dialog(self, title: str, text: str) -> None:
             if not text:

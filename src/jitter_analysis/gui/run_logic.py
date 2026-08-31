@@ -169,8 +169,6 @@ def loaded_run_parameter_updates(details: dict[str, object], mode: RunMode | Non
         updates["sample_count_per_point"] = int(details["sample_count_per_point"])
     if "num_points" in details:
         updates["num_points"] = int(details["num_points"])
-    if "seed" in details:
-        updates["seed"] = str(details["seed"])
     if "restore_initial_values" in details:
         updates["restore_initial_values"] = bool(details["restore_initial_values"])
     distribution = str(details.get("distribution", "")).strip()

@@ -152,3 +152,25 @@ def test_random_influence_view_uses_saved_step_readbacks_and_responses(window):
     assert "Point 1 / 10" in window.random_point_context_label.text()
     assert knobs[0].name in window.random_point_context_label.text()
     assert window.random_point_details_button.isEnabled()
+
+
+def test_random_seed_is_generated_internally_and_invalidated_when_plan_changes(window, monkeypatch):
+    config_path = Path(__file__).resolve().parents[1] / "configs" / "irfel_pvlist.json"
+    assert window._load_config_path(config_path)
+    knob = window.loaded_config.knobs[0]
+    window.scan_panel.scan_value_mode_combo.setCurrentIndex(0)
+    window.state.selected_knob_ids = [knob.id]
+    window.state.active_knob_id = knob.id
+    window._refresh_selected_pvs()
+    monkeypatch.setattr(window, "_new_random_seed", lambda: 123456)
+
+    window.refresh_random_preview()
+
+    assert window._random_preview_seed == 123456
+    assert "seed" not in window.scan_panel.random_preview_summary_label.text().lower()
+    assert not hasattr(window.scan_panel, "random_seed_edit")
+
+    window.scan_panel.random_point_count_spin.setValue(
+        window.scan_panel.random_point_count_spin.value() + 1
+    )
+    assert window._random_preview_seed is None

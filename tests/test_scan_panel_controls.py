@@ -98,9 +98,8 @@ def test_random_page_uses_compact_form_and_hides_advanced_options(qt_app):
     assert panel.random_point_count_spin.value() == 20
     assert panel.random_samples_per_point_spin.value() == 5
     assert panel.random_settle_spin.value() == 1.5
-    assert panel.random_advanced_panel.isHidden()
     assert panel.random_preview_button.text() == "Refresh"
     assert panel.random_preview_show_button.text() == "Details"
-
-    panel.random_more_button.setChecked(True)
-    assert not panel.random_advanced_panel.isHidden()
+    assert not hasattr(panel, "random_seed_edit")
+    assert not hasattr(panel, "random_more_button")
+    assert "Uniform samples" in panel.random_distribution_combo.toolTip()

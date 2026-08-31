@@ -17,7 +17,6 @@ from jitter_analysis.gui.scan_logic import (
     generate_values_by_step,
     parse_manual_scan_values,
     random_preview_payload,
-    resolve_random_seed,
     single_knob_preview_payload,
 )
 
@@ -33,20 +32,6 @@ class _Knob:
     id: str
     name: str = "K1"
     limits: _Limits = field(default_factory=_Limits)
-
-
-def test_resolve_random_seed_uses_default_for_empty_text():
-    assert resolve_random_seed("", 123) == (123, True)
-    assert resolve_random_seed("  ", 123) == (123, True)
-
-
-def test_resolve_random_seed_parses_explicit_integer():
-    assert resolve_random_seed("42", 123) == (42, False)
-
-
-def test_resolve_random_seed_rejects_non_integer_text():
-    with pytest.raises(ValueError, match="Seed must be an integer"):
-        resolve_random_seed("4.2", 123)
 
 
 def test_collect_random_knob_ranges_returns_enabled_selected_rows_as_floats():
@@ -136,7 +121,6 @@ def test_random_preview_payload_formats_preview_lines_summary_and_detail():
         knob_ranges,
         target_steps,
         distribution="uniform",
-        seed=42,
         preview_limit=2,
     )
 
@@ -145,7 +129,7 @@ def test_random_preview_payload_formats_preview_lines_summary_and_detail():
         "002: K1=-0.5, K2=2.75",
         "... 1 more point(s)",
     ]
-    assert payload["summary"] == "3 random point(s) across 2 knob(s)  |  distribution=uniform  |  seed=42"
+    assert payload["summary"] == "3 random point(s) across 2 knob(s)  |  distribution=uniform"
     assert payload["detail"] == "K1[-1, 1], K2[2, 3]"
 
 
