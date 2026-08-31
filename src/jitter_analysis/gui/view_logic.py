@@ -43,6 +43,15 @@ def mode_help_text(mode: str) -> str:
     return messages.get(mode, "")
 
 
+def start_action_text(mode: str) -> str:
+    labels = {
+        "timed_acquisition": "Start Monitor",
+        "single_knob_scan": "Start Single-Knob Scan",
+        "multi_knob_random": "Start Random Scan",
+    }
+    return labels.get(mode, "Start")
+
+
 def progress_tone(completed: int, total: int) -> str:
     if total <= 0 or completed <= 0:
         return "subtle"

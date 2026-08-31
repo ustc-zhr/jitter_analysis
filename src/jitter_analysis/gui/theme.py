@@ -495,10 +495,17 @@ QPushButton[role="statusAction"][tone="info"], QToolButton[role="statusAction"][
     color: {info_color};
 }}
 QPushButton[role="statusAction"][tone="control"], QToolButton[role="statusAction"][tone="control"] {{
-    color: {success_color};
+    background: {spec.primary_bg};
+    border-color: {spec.primary_border};
+    color: {spec.primary_text};
 }}
 QPushButton[role="statusAction"][tone="danger"], QToolButton[role="statusAction"][tone="danger"] {{
     color: {danger_color};
+}}
+QPushButton[role="statusAction"]:disabled, QToolButton[role="statusAction"]:disabled {{
+    background: transparent;
+    border-color: {spec.border_soft};
+    color: {spec.text_disabled};
 }}
 QToolButton#themeToggleButton, QToolButton#logToggleButton {{
     background: {spec.subtle_bg};
@@ -631,15 +638,16 @@ QCheckBox::indicator:checked {{
 QWidget#appShell {{
     background: {spec.window_bg};
 }}
-QFrame#appHeader {{
-    background: {hero_bg};
-    border: 1px solid {spec.section_border};
-    border-radius: 14px;
+QFrame#globalStatusBar {{
+    background: {status_bg};
+    border: 1px solid {status_border};
+    border-radius: 8px;
 }}
 QLabel#appTitle {{
     color: {hero_title};
     background: transparent;
-    font-size: 23px;
+    border: none;
+    font-size: 15px;
     font-weight: 700;
 }}
 QLabel#appSubtitle {{
@@ -677,9 +685,37 @@ QWidget#statusStrip {{
     border: 1px solid {status_border};
     border-radius: 10px;
 }}
-QWidget#runStatusControls {{
+QWidget#globalRunControls {{
     background: transparent;
     border: none;
+}}
+QLabel[role="globalStatus"] {{
+    background: transparent;
+    border: none;
+    color: {spec.text_muted};
+    padding: 0px 2px;
+    font-size: 11px;
+    font-weight: 700;
+}}
+QLabel[role="globalStatus"][tone="info"] {{
+    color: {info_color};
+}}
+QLabel[role="globalStatus"][tone="success"] {{
+    color: {success_color};
+}}
+QLabel[role="globalStatus"][tone="warning"] {{
+    color: {warning_color};
+}}
+QLabel[role="globalStatus"][tone="danger"] {{
+    color: {danger_color};
+}}
+QFrame#globalStatusSeparator {{
+    background: {spec.border};
+    border: none;
+    min-width: 1px;
+    max-width: 1px;
+    min-height: 20px;
+    max-height: 20px;
 }}
 QFrame#statusItem {{
     background: transparent;

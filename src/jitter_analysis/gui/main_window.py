@@ -53,6 +53,7 @@ if __package__ in {None, ""}:
         mode_key_from_run_mode,
         progress_tone,
         run_status_tone,
+        start_action_text,
         single_knob_axis_name,
         single_knob_axis_summary_text,
         single_knob_step_axis_value,
@@ -145,6 +146,7 @@ else:
         mode_key_from_run_mode,
         progress_tone,
         run_status_tone,
+        start_action_text,
         single_knob_axis_name,
         single_knob_axis_summary_text,
         single_knob_step_axis_value,
@@ -383,7 +385,7 @@ class MainWindow(_MainWindowBase):
         self.run_stop_button = QtWidgets.QPushButton("Stop")
         button_specs = (
             (self.run_check_button, 112, "info"),
-            (self.run_start_button, 82, "control"),
+            (self.run_start_button, 172, "control"),
             (self.run_stop_button, 82, "danger"),
         )
         for button, width, tone in button_specs:
@@ -395,28 +397,62 @@ class MainWindow(_MainWindowBase):
             button.style().unpolish(button)
             button.style().polish(button)
 
-    def _build_run_status_controls(self):
+    def _build_global_run_controls(self):
         controls = QtWidgets.QWidget()
-        controls.setObjectName("runStatusControls")
+        controls.setObjectName("globalRunControls")
+        controls.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
         layout = QtWidgets.QHBoxLayout(controls)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        layout.setSpacing(10)
+        self.global_epics_status_label = QtWidgets.QLabel("●  EPICS  Not checked")
+        self.global_epics_status_label.setObjectName("globalEpicsStatus")
+        self.global_epics_status_label.setProperty("role", "globalStatus")
+        self.global_epics_status_label.setProperty("tone", "subtle")
+        self.global_epics_status_label.setMinimumWidth(168)
+        self.global_mode_status_label = QtWidgets.QLabel("MODE  Monitor")
+        self.global_mode_status_label.setObjectName("globalModeStatus")
+        self.global_mode_status_label.setProperty("role", "globalStatus")
+        self.global_mode_status_label.setProperty("tone", "info")
+        self.global_mode_status_label.setMinimumWidth(132)
+        self.global_run_status_label = QtWidgets.QLabel("RUN  Idle")
+        self.global_run_status_label.setObjectName("globalRunStatus")
+        self.global_run_status_label.setProperty("role", "globalStatus")
+        self.global_run_status_label.setProperty("tone", "subtle")
+        self.global_run_status_label.setMinimumWidth(92)
+        layout.addWidget(self.global_epics_status_label)
+        layout.addWidget(self._build_global_status_separator())
+        layout.addWidget(self.global_mode_status_label)
+        layout.addWidget(self._build_global_status_separator())
+        layout.addWidget(self.global_run_status_label)
+        layout.addStretch(1)
         layout.addWidget(self.run_check_button)
         layout.addWidget(self.run_start_button)
         layout.addWidget(self.run_stop_button)
         return controls
 
+    @staticmethod
+    def _build_global_status_separator():
+        separator = QtWidgets.QFrame()
+        separator.setObjectName("globalStatusSeparator")
+        separator.setFrameShape(QtWidgets.QFrame.VLine)
+        separator.setFrameShadow(QtWidgets.QFrame.Plain)
+        return separator
+
     def _build_app_header(self):
         header = QtWidgets.QFrame()
-        header.setObjectName("appHeader")
+        header.setObjectName("globalStatusBar")
+        header.setFixedHeight(48)
         layout = QtWidgets.QHBoxLayout(header)
-        layout.setContentsMargins(16, 12, 16, 12)
-        layout.setSpacing(12)
+        layout.setContentsMargins(12, 6, 12, 6)
+        layout.setSpacing(10)
 
         app_title = QtWidgets.QLabel("Jitter Analysis")
         app_title.setObjectName("appTitle")
-        layout.addWidget(app_title, 1, QtCore.Qt.AlignVCenter)
+        layout.addWidget(app_title, 0, QtCore.Qt.AlignVCenter)
+        layout.addWidget(self._build_global_status_separator())
 
+        self.global_run_controls = self._build_global_run_controls()
+        layout.addWidget(self.global_run_controls, 1, QtCore.Qt.AlignVCenter)
         layout.addWidget(self.log_toggle_button, 0, QtCore.Qt.AlignVCenter)
         layout.addWidget(self._build_theme_toggle_button(), 0, QtCore.Qt.AlignVCenter)
         return header
@@ -576,7 +612,6 @@ class MainWindow(_MainWindowBase):
         inner.setSpacing(10)
 
         self.status_panel = StatusPanel()
-        self.status_panel.add_trailing_widget(self._build_run_status_controls())
         inner.addWidget(self.status_panel)
 
         self.trend_plot = TrendPlot()
@@ -1442,7 +1477,7 @@ class MainWindow(_MainWindowBase):
 
         self.main_tabs.setCurrentIndex(self.analysis_page_index)
         self._ensure_visible_analysis_tab_loaded()
-        self.status_panel.set_connection("Offline Run", tone="info")
+        self._set_connection_status("Offline Run", tone="info")
         self.status_panel.set_mode("Loaded Run", tone="info")
         self.status_panel.set_sample(str(self._current_record_count()), tone="subtle")
         self.status_panel.set_step(str(len(self.current_run_steps)), tone="subtle")
@@ -1511,7 +1546,7 @@ class MainWindow(_MainWindowBase):
 
         self.main_tabs.setCurrentIndex(self.analysis_page_index)
         self._ensure_visible_analysis_tab_loaded()
-        self.status_panel.set_connection("Offline Run", tone="info")
+        self._set_connection_status("Offline Run", tone="info")
         self.status_panel.set_mode("Loaded Run", tone="info")
         self.status_panel.set_sample(str(self._current_record_count()), tone="subtle")
         self.status_panel.set_step("0", tone="subtle")
@@ -1918,7 +1953,7 @@ class MainWindow(_MainWindowBase):
         has_selection = bool(selected_objects or selected_knobs)
         ready, next_step = self._mode_ready_state(mode)
 
-        self.action_start.setText("Start")
+        self.action_start.setText(start_action_text(mode))
         if running:
             stop_label = self._mode_display_name(self.current_run_mode.value if self.current_run_mode else mode)
             self.action_stop.setText(f"Stop {stop_label}")
@@ -1941,6 +1976,28 @@ class MainWindow(_MainWindowBase):
         self.analysis_open_run_button.setEnabled(not running)
         self.run_start_button.setToolTip(next_step)
         self.action_start.setToolTip(next_step)
+        show_result_mode = (running or self._viewing_saved_run) and self.current_run_mode is not None
+        mode_for_status = self._mode_display_name(
+            self._mode_key_from_run_mode(self.current_run_mode) if show_result_mode else mode
+        )
+        self._set_global_status_pill(
+            self.global_mode_status_label,
+            "MODE",
+            mode_for_status,
+            "info",
+        )
+        if self._viewing_saved_run:
+            run_status_text = "Loaded"
+            run_status_tone_value = "info"
+        else:
+            run_status_text = self.state.run_status.value.replace("_", " ").title()
+            run_status_tone_value = self._run_status_tone(self.state.run_status)
+        self._set_global_status_pill(
+            self.global_run_status_label,
+            "RUN",
+            run_status_text,
+            run_status_tone_value,
+        )
 
         self.scan_panel.active_knob_combo.setEnabled(bool(selected_knobs) and not running)
         self.scan_panel.preview_refresh_button.setEnabled(bool(active_knob) and not running)
@@ -1953,11 +2010,11 @@ class MainWindow(_MainWindowBase):
         if not running and not self._viewing_saved_run:
             current_key = self._selection_key() if loaded else None
             if not loaded:
-                self.status_panel.set_connection("Load PV library", tone="subtle")
+                self._set_connection_status("Load PV library", tone="subtle")
             elif not has_selection:
-                self.status_panel.set_connection("Choose PVs", tone="subtle")
+                self._set_connection_status("Choose PVs", tone="subtle")
             elif current_key != self._last_connection_key:
-                self.status_panel.set_connection("Not checked", tone="subtle")
+                self._set_connection_status("Not checked", tone="subtle")
 
         if self.state.run_status == RunStatus.IDLE and not self._viewing_saved_run:
             self.status_panel.set_mode(self._mode_display_name(mode), tone="info")
@@ -2602,7 +2659,26 @@ class MainWindow(_MainWindowBase):
 
     def _set_connection_summary(self, connected: int, total: int) -> None:
         label, tone = connection_summary(connected, total)
-        self.status_panel.set_connection(label, tone=tone)
+        self._set_connection_status(label, tone=tone)
+
+    def _set_connection_status(self, text: str, tone: str = "subtle") -> None:
+        self.status_panel.set_connection(text, tone=tone)
+        if hasattr(self, "global_epics_status_label"):
+            self._set_global_status_pill(
+                self.global_epics_status_label,
+                "EPICS",
+                text,
+                tone,
+            )
+
+    @staticmethod
+    def _set_global_status_pill(label, prefix: str, text: str, tone: str) -> None:
+        marker = "●  " if prefix == "EPICS" else ""
+        label.setText(f"{marker}{prefix}  {text}")
+        label.setProperty("tone", tone)
+        label.style().unpolish(label)
+        label.style().polish(label)
+        label.update()
 
     def _ensure_epics_runtime(self) -> bool:
         try:

@@ -26,6 +26,7 @@ from jitter_analysis.gui.view_logic import (
     single_knob_axis_name,
     single_knob_axis_summary_text,
     single_knob_step_axis_value,
+    start_action_text,
 )
 
 
@@ -46,6 +47,13 @@ def test_mode_and_tone_helpers():
     assert progress_tone(10, 10) == "success"
     assert run_status_tone(RunStatus.COMPLETED) == "success"
     assert run_status_tone(RunStatus.FAILED) == "danger"
+
+
+def test_start_action_text_follows_selected_mode():
+    assert start_action_text("timed_acquisition") == "Start Monitor"
+    assert start_action_text("single_knob_scan") == "Start Single-Knob Scan"
+    assert start_action_text("multi_knob_random") == "Start Random Scan"
+    assert start_action_text("unknown") == "Start"
 
 
 def test_connection_summary_labels_and_tones():
