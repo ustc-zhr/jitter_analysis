@@ -8,7 +8,7 @@
   "source": {
     "machine_definition": "../../half_linac/configs/machines/half/machine.json",
     "control_backend": "../../half_linac/configs/machines/half/control_backends/real.json",
-    "scope": "All scalar BPM, current-transformer, LLRF, energy, and profile-size diagnostics; all magnetic-current and klystron-HV write/readback pairs. Raw camera image arrays are intentionally excluded."
+    "scope": "All scalar BPM, current-transformer, LLRF, energy, profile-size, and microwave-cabinet temperature diagnostics; all magnetic-current and klystron-HV write/readback pairs. Raw camera image arrays are intentionally excluded."
   },
   "defaults": {
     "acquisition": {
@@ -110,7 +110,7 @@
       "label": "LLRF Phase",
       "kind": "object",
       "color": "#7b6d8d",
-      "order": 100
+      "order": 92
     },
     {
       "id": "energy",
@@ -134,11 +134,25 @@
       "order": 95
     },
     {
+      "id": "rf_channel_phase",
+      "label": "LLRF Channel Phase",
+      "kind": "object",
+      "color": "#7b6d8d",
+      "order": 100
+    },
+    {
       "id": "rf_power",
       "label": "LLRF Channel Power",
       "kind": "object",
       "color": "#9e2a2b",
       "order": 105
+    },
+    {
+      "id": "microwave_cabinet_temperature",
+      "label": "Microwave Cabinet Temperature",
+      "kind": "object",
+      "color": "#f9844a",
+      "order": 130
     }
   ],
   "knobs": [
@@ -9066,7 +9080,7 @@
     {
       "id": "llrfpb_ch1_phase",
       "name": "LLRFPB SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRFPB:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -9089,7 +9103,7 @@
     {
       "id": "llrfpb_ch2_phase",
       "name": "LLRFPB Pickup 1 phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRFPB:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -9112,7 +9126,7 @@
     {
       "id": "llrfpb_ch3_phase",
       "name": "LLRFPB Pickup 2 phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRFPB:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -9135,7 +9149,7 @@
     {
       "id": "llrfpb_ch4_phase",
       "name": "LLRFPB Directional coupler forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRFPB:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -9158,7 +9172,7 @@
     {
       "id": "llrfpb_ch5_phase",
       "name": "LLRFPB Directional coupler reverse phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRFPB:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -9181,7 +9195,7 @@
     {
       "id": "llrfpb_ch7_phase",
       "name": "LLRFPB REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRFPB:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -9204,7 +9218,7 @@
     {
       "id": "llrfpb_ch8_phase",
       "name": "LLRFPB VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRFPB:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -9595,7 +9609,7 @@
     {
       "id": "llrf01_ch1_phase",
       "name": "LLRF01 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF01:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -9618,7 +9632,7 @@
     {
       "id": "llrf01_ch2_phase",
       "name": "LLRF01 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF01:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -9641,7 +9655,7 @@
     {
       "id": "llrf01_ch3_phase",
       "name": "LLRF01 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF01:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -9664,7 +9678,7 @@
     {
       "id": "llrf01_ch4_phase",
       "name": "LLRF01 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF01:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -9687,7 +9701,7 @@
     {
       "id": "llrf01_ch5_phase",
       "name": "LLRF01 BC input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF01:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -9710,7 +9724,7 @@
     {
       "id": "llrf01_ch6_phase",
       "name": "LLRF01 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF01:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -9733,7 +9747,7 @@
     {
       "id": "llrf01_ch7_phase",
       "name": "LLRF01 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF01:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -9756,7 +9770,7 @@
     {
       "id": "llrf01_ch8_phase",
       "name": "LLRF01 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF01:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -10193,7 +10207,7 @@
     {
       "id": "llrf02_ch1_phase",
       "name": "LLRF02 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF02:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -10216,7 +10230,7 @@
     {
       "id": "llrf02_ch2_phase",
       "name": "LLRF02 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF02:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -10239,7 +10253,7 @@
     {
       "id": "llrf02_ch3_phase",
       "name": "LLRF02 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF02:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -10262,7 +10276,7 @@
     {
       "id": "llrf02_ch4_phase",
       "name": "LLRF02 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF02:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -10285,7 +10299,7 @@
     {
       "id": "llrf02_ch5_phase",
       "name": "LLRF02 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF02:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -10308,7 +10322,7 @@
     {
       "id": "llrf02_ch6_phase",
       "name": "LLRF02 ACC2 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF02:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -10331,7 +10345,7 @@
     {
       "id": "llrf02_ch7_phase",
       "name": "LLRF02 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF02:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -10354,7 +10368,7 @@
     {
       "id": "llrf02_ch8_phase",
       "name": "LLRF02 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF02:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -10791,7 +10805,7 @@
     {
       "id": "llrf03_ch1_phase",
       "name": "LLRF03 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF03:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -10814,7 +10828,7 @@
     {
       "id": "llrf03_ch2_phase",
       "name": "LLRF03 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF03:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -10837,7 +10851,7 @@
     {
       "id": "llrf03_ch3_phase",
       "name": "LLRF03 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF03:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -10860,7 +10874,7 @@
     {
       "id": "llrf03_ch4_phase",
       "name": "LLRF03 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF03:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -10883,7 +10897,7 @@
     {
       "id": "llrf03_ch5_phase",
       "name": "LLRF03 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF03:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -10906,7 +10920,7 @@
     {
       "id": "llrf03_ch6_phase",
       "name": "LLRF03 ACC2 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF03:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -10929,7 +10943,7 @@
     {
       "id": "llrf03_ch7_phase",
       "name": "LLRF03 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF03:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -10952,7 +10966,7 @@
     {
       "id": "llrf03_ch8_phase",
       "name": "LLRF03 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF03:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -11389,7 +11403,7 @@
     {
       "id": "llrf04_ch1_phase",
       "name": "LLRF04 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF04:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -11412,7 +11426,7 @@
     {
       "id": "llrf04_ch2_phase",
       "name": "LLRF04 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF04:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -11435,7 +11449,7 @@
     {
       "id": "llrf04_ch3_phase",
       "name": "LLRF04 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF04:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -11458,7 +11472,7 @@
     {
       "id": "llrf04_ch4_phase",
       "name": "LLRF04 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF04:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -11481,7 +11495,7 @@
     {
       "id": "llrf04_ch5_phase",
       "name": "LLRF04 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF04:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -11504,7 +11518,7 @@
     {
       "id": "llrf04_ch6_phase",
       "name": "LLRF04 ACC2 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF04:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -11527,7 +11541,7 @@
     {
       "id": "llrf04_ch7_phase",
       "name": "LLRF04 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF04:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -11550,7 +11564,7 @@
     {
       "id": "llrf04_ch8_phase",
       "name": "LLRF04 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF04:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -11987,7 +12001,7 @@
     {
       "id": "llrf05_ch1_phase",
       "name": "LLRF05 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF05:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -12010,7 +12024,7 @@
     {
       "id": "llrf05_ch2_phase",
       "name": "LLRF05 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF05:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -12033,7 +12047,7 @@
     {
       "id": "llrf05_ch3_phase",
       "name": "LLRF05 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF05:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -12056,7 +12070,7 @@
     {
       "id": "llrf05_ch4_phase",
       "name": "LLRF05 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF05:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -12079,7 +12093,7 @@
     {
       "id": "llrf05_ch5_phase",
       "name": "LLRF05 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF05:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -12102,7 +12116,7 @@
     {
       "id": "llrf05_ch6_phase",
       "name": "LLRF05 ACC2 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF05:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -12125,7 +12139,7 @@
     {
       "id": "llrf05_ch7_phase",
       "name": "LLRF05 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF05:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -12148,7 +12162,7 @@
     {
       "id": "llrf05_ch8_phase",
       "name": "LLRF05 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF05:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -12585,7 +12599,7 @@
     {
       "id": "llrf06_ch1_phase",
       "name": "LLRF06 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF06:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -12608,7 +12622,7 @@
     {
       "id": "llrf06_ch2_phase",
       "name": "LLRF06 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF06:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -12631,7 +12645,7 @@
     {
       "id": "llrf06_ch3_phase",
       "name": "LLRF06 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF06:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -12654,7 +12668,7 @@
     {
       "id": "llrf06_ch4_phase",
       "name": "LLRF06 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF06:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -12677,7 +12691,7 @@
     {
       "id": "llrf06_ch5_phase",
       "name": "LLRF06 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF06:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -12700,7 +12714,7 @@
     {
       "id": "llrf06_ch6_phase",
       "name": "LLRF06 ACC2 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF06:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -12723,7 +12737,7 @@
     {
       "id": "llrf06_ch7_phase",
       "name": "LLRF06 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF06:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -12746,7 +12760,7 @@
     {
       "id": "llrf06_ch8_phase",
       "name": "LLRF06 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF06:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -13183,7 +13197,7 @@
     {
       "id": "llrf07_ch1_phase",
       "name": "LLRF07 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF07:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -13206,7 +13220,7 @@
     {
       "id": "llrf07_ch2_phase",
       "name": "LLRF07 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF07:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -13229,7 +13243,7 @@
     {
       "id": "llrf07_ch3_phase",
       "name": "LLRF07 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF07:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -13252,7 +13266,7 @@
     {
       "id": "llrf07_ch4_phase",
       "name": "LLRF07 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF07:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -13275,7 +13289,7 @@
     {
       "id": "llrf07_ch5_phase",
       "name": "LLRF07 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF07:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -13298,7 +13312,7 @@
     {
       "id": "llrf07_ch6_phase",
       "name": "LLRF07 ACC2 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF07:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -13321,7 +13335,7 @@
     {
       "id": "llrf07_ch7_phase",
       "name": "LLRF07 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF07:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -13344,7 +13358,7 @@
     {
       "id": "llrf07_ch8_phase",
       "name": "LLRF07 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF07:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -13781,7 +13795,7 @@
     {
       "id": "llrf08_ch1_phase",
       "name": "LLRF08 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF08:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -13804,7 +13818,7 @@
     {
       "id": "llrf08_ch2_phase",
       "name": "LLRF08 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF08:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -13827,7 +13841,7 @@
     {
       "id": "llrf08_ch3_phase",
       "name": "LLRF08 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF08:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -13850,7 +13864,7 @@
     {
       "id": "llrf08_ch4_phase",
       "name": "LLRF08 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF08:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -13873,7 +13887,7 @@
     {
       "id": "llrf08_ch5_phase",
       "name": "LLRF08 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF08:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -13896,7 +13910,7 @@
     {
       "id": "llrf08_ch6_phase",
       "name": "LLRF08 ACC2 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF08:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -13919,7 +13933,7 @@
     {
       "id": "llrf08_ch7_phase",
       "name": "LLRF08 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF08:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -13942,7 +13956,7 @@
     {
       "id": "llrf08_ch8_phase",
       "name": "LLRF08 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF08:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -14379,7 +14393,7 @@
     {
       "id": "llrf09_ch1_phase",
       "name": "LLRF09 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF09:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -14402,7 +14416,7 @@
     {
       "id": "llrf09_ch2_phase",
       "name": "LLRF09 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF09:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -14425,7 +14439,7 @@
     {
       "id": "llrf09_ch3_phase",
       "name": "LLRF09 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF09:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -14448,7 +14462,7 @@
     {
       "id": "llrf09_ch4_phase",
       "name": "LLRF09 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF09:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -14471,7 +14485,7 @@
     {
       "id": "llrf09_ch5_phase",
       "name": "LLRF09 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF09:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -14494,7 +14508,7 @@
     {
       "id": "llrf09_ch6_phase",
       "name": "LLRF09 ACC2 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF09:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -14517,7 +14531,7 @@
     {
       "id": "llrf09_ch7_phase",
       "name": "LLRF09 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF09:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -14540,7 +14554,7 @@
     {
       "id": "llrf09_ch8_phase",
       "name": "LLRF09 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF09:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -14977,7 +14991,7 @@
     {
       "id": "llrf10_ch1_phase",
       "name": "LLRF10 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF10:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -15000,7 +15014,7 @@
     {
       "id": "llrf10_ch2_phase",
       "name": "LLRF10 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF10:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -15023,7 +15037,7 @@
     {
       "id": "llrf10_ch3_phase",
       "name": "LLRF10 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF10:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -15046,7 +15060,7 @@
     {
       "id": "llrf10_ch4_phase",
       "name": "LLRF10 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF10:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -15069,7 +15083,7 @@
     {
       "id": "llrf10_ch5_phase",
       "name": "LLRF10 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF10:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -15092,7 +15106,7 @@
     {
       "id": "llrf10_ch6_phase",
       "name": "LLRF10 ACC2 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF10:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -15115,7 +15129,7 @@
     {
       "id": "llrf10_ch7_phase",
       "name": "LLRF10 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF10:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -15138,7 +15152,7 @@
     {
       "id": "llrf10_ch8_phase",
       "name": "LLRF10 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF10:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -15575,7 +15589,7 @@
     {
       "id": "llrf11_ch1_phase",
       "name": "LLRF11 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF11:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -15598,7 +15612,7 @@
     {
       "id": "llrf11_ch2_phase",
       "name": "LLRF11 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF11:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -15621,7 +15635,7 @@
     {
       "id": "llrf11_ch3_phase",
       "name": "LLRF11 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF11:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -15644,7 +15658,7 @@
     {
       "id": "llrf11_ch4_phase",
       "name": "LLRF11 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF11:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -15667,7 +15681,7 @@
     {
       "id": "llrf11_ch5_phase",
       "name": "LLRF11 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF11:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -15690,7 +15704,7 @@
     {
       "id": "llrf11_ch6_phase",
       "name": "LLRF11 ACC2 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF11:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -15713,7 +15727,7 @@
     {
       "id": "llrf11_ch7_phase",
       "name": "LLRF11 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF11:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -15736,7 +15750,7 @@
     {
       "id": "llrf11_ch8_phase",
       "name": "LLRF11 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF11:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -16173,7 +16187,7 @@
     {
       "id": "llrf12_ch1_phase",
       "name": "LLRF12 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF12:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -16196,7 +16210,7 @@
     {
       "id": "llrf12_ch2_phase",
       "name": "LLRF12 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF12:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -16219,7 +16233,7 @@
     {
       "id": "llrf12_ch3_phase",
       "name": "LLRF12 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF12:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -16242,7 +16256,7 @@
     {
       "id": "llrf12_ch4_phase",
       "name": "LLRF12 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF12:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -16265,7 +16279,7 @@
     {
       "id": "llrf12_ch5_phase",
       "name": "LLRF12 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF12:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -16288,7 +16302,7 @@
     {
       "id": "llrf12_ch6_phase",
       "name": "LLRF12 ACC2 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF12:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -16311,7 +16325,7 @@
     {
       "id": "llrf12_ch7_phase",
       "name": "LLRF12 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF12:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -16334,7 +16348,7 @@
     {
       "id": "llrf12_ch8_phase",
       "name": "LLRF12 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF12:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -16771,7 +16785,7 @@
     {
       "id": "llrf13_ch1_phase",
       "name": "LLRF13 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF13:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -16794,7 +16808,7 @@
     {
       "id": "llrf13_ch2_phase",
       "name": "LLRF13 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF13:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -16817,7 +16831,7 @@
     {
       "id": "llrf13_ch3_phase",
       "name": "LLRF13 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF13:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -16840,7 +16854,7 @@
     {
       "id": "llrf13_ch4_phase",
       "name": "LLRF13 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF13:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -16863,7 +16877,7 @@
     {
       "id": "llrf13_ch5_phase",
       "name": "LLRF13 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF13:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -16886,7 +16900,7 @@
     {
       "id": "llrf13_ch6_phase",
       "name": "LLRF13 ACC2 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF13:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -16909,7 +16923,7 @@
     {
       "id": "llrf13_ch7_phase",
       "name": "LLRF13 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF13:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -16932,7 +16946,7 @@
     {
       "id": "llrf13_ch8_phase",
       "name": "LLRF13 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF13:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -17369,7 +17383,7 @@
     {
       "id": "llrf14_ch1_phase",
       "name": "LLRF14 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF14:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -17392,7 +17406,7 @@
     {
       "id": "llrf14_ch2_phase",
       "name": "LLRF14 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF14:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -17415,7 +17429,7 @@
     {
       "id": "llrf14_ch3_phase",
       "name": "LLRF14 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF14:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -17438,7 +17452,7 @@
     {
       "id": "llrf14_ch4_phase",
       "name": "LLRF14 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF14:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -17461,7 +17475,7 @@
     {
       "id": "llrf14_ch5_phase",
       "name": "LLRF14 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF14:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -17484,7 +17498,7 @@
     {
       "id": "llrf14_ch6_phase",
       "name": "LLRF14 ACC2 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF14:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -17507,7 +17521,7 @@
     {
       "id": "llrf14_ch7_phase",
       "name": "LLRF14 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF14:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -17530,7 +17544,7 @@
     {
       "id": "llrf14_ch8_phase",
       "name": "LLRF14 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF14:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -17967,7 +17981,7 @@
     {
       "id": "llrf15_ch1_phase",
       "name": "LLRF15 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF15:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -17990,7 +18004,7 @@
     {
       "id": "llrf15_ch2_phase",
       "name": "LLRF15 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF15:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -18013,7 +18027,7 @@
     {
       "id": "llrf15_ch3_phase",
       "name": "LLRF15 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF15:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -18036,7 +18050,7 @@
     {
       "id": "llrf15_ch4_phase",
       "name": "LLRF15 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF15:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -18059,7 +18073,7 @@
     {
       "id": "llrf15_ch5_phase",
       "name": "LLRF15 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF15:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -18082,7 +18096,7 @@
     {
       "id": "llrf15_ch6_phase",
       "name": "LLRF15 ACC2 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF15:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -18105,7 +18119,7 @@
     {
       "id": "llrf15_ch7_phase",
       "name": "LLRF15 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF15:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -18128,7 +18142,7 @@
     {
       "id": "llrf15_ch8_phase",
       "name": "LLRF15 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF15:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -18565,7 +18579,7 @@
     {
       "id": "llrf16_ch1_phase",
       "name": "LLRF16 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF16:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -18588,7 +18602,7 @@
     {
       "id": "llrf16_ch2_phase",
       "name": "LLRF16 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF16:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -18611,7 +18625,7 @@
     {
       "id": "llrf16_ch3_phase",
       "name": "LLRF16 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF16:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -18634,7 +18648,7 @@
     {
       "id": "llrf16_ch4_phase",
       "name": "LLRF16 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF16:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -18657,7 +18671,7 @@
     {
       "id": "llrf16_ch5_phase",
       "name": "LLRF16 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF16:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -18680,7 +18694,7 @@
     {
       "id": "llrf16_ch6_phase",
       "name": "LLRF16 ACC2 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF16:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -18703,7 +18717,7 @@
     {
       "id": "llrf16_ch7_phase",
       "name": "LLRF16 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF16:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -18726,7 +18740,7 @@
     {
       "id": "llrf16_ch8_phase",
       "name": "LLRF16 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF16:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -19163,7 +19177,7 @@
     {
       "id": "llrf17_ch1_phase",
       "name": "LLRF17 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF17:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -19186,7 +19200,7 @@
     {
       "id": "llrf17_ch2_phase",
       "name": "LLRF17 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF17:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -19209,7 +19223,7 @@
     {
       "id": "llrf17_ch3_phase",
       "name": "LLRF17 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF17:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -19232,7 +19246,7 @@
     {
       "id": "llrf17_ch4_phase",
       "name": "LLRF17 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF17:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -19255,7 +19269,7 @@
     {
       "id": "llrf17_ch5_phase",
       "name": "LLRF17 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF17:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -19278,7 +19292,7 @@
     {
       "id": "llrf17_ch6_phase",
       "name": "LLRF17 ACC2 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF17:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -19301,7 +19315,7 @@
     {
       "id": "llrf17_ch7_phase",
       "name": "LLRF17 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF17:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -19324,7 +19338,7 @@
     {
       "id": "llrf17_ch8_phase",
       "name": "LLRF17 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF17:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -19761,7 +19775,7 @@
     {
       "id": "llrf18_ch1_phase",
       "name": "LLRF18 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF18:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -19784,7 +19798,7 @@
     {
       "id": "llrf18_ch2_phase",
       "name": "LLRF18 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF18:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -19807,7 +19821,7 @@
     {
       "id": "llrf18_ch3_phase",
       "name": "LLRF18 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF18:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -19830,7 +19844,7 @@
     {
       "id": "llrf18_ch4_phase",
       "name": "LLRF18 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF18:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -19853,7 +19867,7 @@
     {
       "id": "llrf18_ch5_phase",
       "name": "LLRF18 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF18:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -19876,7 +19890,7 @@
     {
       "id": "llrf18_ch6_phase",
       "name": "LLRF18 ACC2 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF18:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -19899,7 +19913,7 @@
     {
       "id": "llrf18_ch7_phase",
       "name": "LLRF18 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF18:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -19922,7 +19936,7 @@
     {
       "id": "llrf18_ch8_phase",
       "name": "LLRF18 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF18:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -20359,7 +20373,7 @@
     {
       "id": "llrf19_ch1_phase",
       "name": "LLRF19 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF19:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -20382,7 +20396,7 @@
     {
       "id": "llrf19_ch2_phase",
       "name": "LLRF19 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF19:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -20405,7 +20419,7 @@
     {
       "id": "llrf19_ch3_phase",
       "name": "LLRF19 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF19:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -20428,7 +20442,7 @@
     {
       "id": "llrf19_ch4_phase",
       "name": "LLRF19 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF19:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -20451,7 +20465,7 @@
     {
       "id": "llrf19_ch5_phase",
       "name": "LLRF19 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF19:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -20474,7 +20488,7 @@
     {
       "id": "llrf19_ch6_phase",
       "name": "LLRF19 ACC2 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF19:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -20497,7 +20511,7 @@
     {
       "id": "llrf19_ch7_phase",
       "name": "LLRF19 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF19:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -20520,7 +20534,7 @@
     {
       "id": "llrf19_ch8_phase",
       "name": "LLRF19 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF19:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -20957,7 +20971,7 @@
     {
       "id": "llrf20_ch1_phase",
       "name": "LLRF20 SSA phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF20:GET_CH1_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -20980,7 +20994,7 @@
     {
       "id": "llrf20_ch2_phase",
       "name": "LLRF20 Klystron forward phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF20:GET_CH2_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -21003,7 +21017,7 @@
     {
       "id": "llrf20_ch3_phase",
       "name": "LLRF20 ACC1 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF20:GET_CH3_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -21026,7 +21040,7 @@
     {
       "id": "llrf20_ch4_phase",
       "name": "LLRF20 ACC1 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF20:GET_CH4_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -21049,7 +21063,7 @@
     {
       "id": "llrf20_ch5_phase",
       "name": "LLRF20 ACC2 input phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF20:GET_CH5_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -21072,7 +21086,7 @@
     {
       "id": "llrf20_ch6_phase",
       "name": "LLRF20 ACC2 load phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF20:GET_CH6_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -21095,7 +21109,7 @@
     {
       "id": "llrf20_ch7_phase",
       "name": "LLRF20 REF phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF20:GET_CH7_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -21118,7 +21132,7 @@
     {
       "id": "llrf20_ch8_phase",
       "name": "LLRF20 VM phase",
-      "group": "rf_phase",
+      "group": "rf_channel_phase",
       "read_pv": "IN:MW:LLRF20:GET_CH8_PHASE",
       "unit": "deg",
       "precision": 3,
@@ -21344,6 +21358,282 @@
         "klystron_reflected"
       ],
       "note": "PV is imported from the HALF LLRF channel inventory dated 2026-08-07."
+    },
+    {
+      "id": "mwcb01_t01_temperature",
+      "name": "MWCB01 T01 temperature",
+      "group": "microwave_cabinet_temperature",
+      "read_pv": "PF:WC:L003_MWCB01_T01:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "microwave",
+        "cabinet",
+        "mwcb01",
+        "t01"
+      ],
+      "note": "Microwave cabinet temperature probe."
+    },
+    {
+      "id": "mwcb02_t01_temperature",
+      "name": "MWCB02 T01 temperature",
+      "group": "microwave_cabinet_temperature",
+      "read_pv": "PF:WC:L003_MWCB02_T01:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "microwave",
+        "cabinet",
+        "mwcb02",
+        "t01"
+      ],
+      "note": "Microwave cabinet temperature probe."
+    },
+    {
+      "id": "mwcb03_t01_temperature",
+      "name": "MWCB03 T01 temperature",
+      "group": "microwave_cabinet_temperature",
+      "read_pv": "PF:WC:L003_MWCB03_T01:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "microwave",
+        "cabinet",
+        "mwcb03",
+        "t01"
+      ],
+      "note": "Microwave cabinet temperature probe."
+    },
+    {
+      "id": "mwcb04_t01_temperature",
+      "name": "MWCB04 T01 temperature",
+      "group": "microwave_cabinet_temperature",
+      "read_pv": "PF:WC:L003_MWCB04_T01:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "microwave",
+        "cabinet",
+        "mwcb04",
+        "t01"
+      ],
+      "note": "Microwave cabinet temperature probe."
+    },
+    {
+      "id": "mwcb05_t01_temperature",
+      "name": "MWCB05 T01 temperature",
+      "group": "microwave_cabinet_temperature",
+      "read_pv": "PF:WC:L003_MWCB05_T01:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "microwave",
+        "cabinet",
+        "mwcb05",
+        "t01"
+      ],
+      "note": "Microwave cabinet temperature probe."
+    },
+    {
+      "id": "mwcb06_t01_temperature",
+      "name": "MWCB06 T01 temperature",
+      "group": "microwave_cabinet_temperature",
+      "read_pv": "PF:WC:L003_MWCB06_T01:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "microwave",
+        "cabinet",
+        "mwcb06",
+        "t01"
+      ],
+      "note": "Microwave cabinet temperature probe."
+    },
+    {
+      "id": "mwcb07_t01_temperature",
+      "name": "MWCB07 T01 temperature",
+      "group": "microwave_cabinet_temperature",
+      "read_pv": "PF:WC:L003_MWCB07_T01:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "microwave",
+        "cabinet",
+        "mwcb07",
+        "t01"
+      ],
+      "note": "Microwave cabinet temperature probe."
+    },
+    {
+      "id": "mwcb08_t01_temperature",
+      "name": "MWCB08 T01 temperature",
+      "group": "microwave_cabinet_temperature",
+      "read_pv": "PF:WC:L003_MWCB08_T01:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "microwave",
+        "cabinet",
+        "mwcb08",
+        "t01"
+      ],
+      "note": "Microwave cabinet temperature probe."
+    },
+    {
+      "id": "mwcb09_t01_temperature",
+      "name": "MWCB09 T01 temperature",
+      "group": "microwave_cabinet_temperature",
+      "read_pv": "PF:WC:L003_MWCB09_T01:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "microwave",
+        "cabinet",
+        "mwcb09",
+        "t01"
+      ],
+      "note": "Microwave cabinet temperature probe."
+    },
+    {
+      "id": "mwcb10_t01_temperature",
+      "name": "MWCB10 T01 temperature",
+      "group": "microwave_cabinet_temperature",
+      "read_pv": "PF:WC:L003_MWCB10_T01:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "microwave",
+        "cabinet",
+        "mwcb10",
+        "t01"
+      ],
+      "note": "Microwave cabinet temperature probe."
+    },
+    {
+      "id": "mwcb11_t01_temperature",
+      "name": "MWCB11 T01 temperature",
+      "group": "microwave_cabinet_temperature",
+      "read_pv": "PF:WC:L003_MWCB11_T01:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "microwave",
+        "cabinet",
+        "mwcb11",
+        "t01"
+      ],
+      "note": "Microwave cabinet temperature probe."
+    },
+    {
+      "id": "mwcb12_t01_temperature",
+      "name": "MWCB12 T01 temperature",
+      "group": "microwave_cabinet_temperature",
+      "read_pv": "PF:WC:L003_MWCB12_T01:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "microwave",
+        "cabinet",
+        "mwcb12",
+        "t01"
+      ],
+      "note": "Microwave cabinet temperature probe."
     }
   ],
   "presets": [
