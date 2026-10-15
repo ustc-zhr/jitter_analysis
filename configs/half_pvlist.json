@@ -8,7 +8,7 @@
   "source": {
     "machine_definition": "../../half_linac/configs/machines/half/machine.json",
     "control_backend": "../../half_linac/configs/machines/half/control_backends/real.json",
-    "scope": "All scalar BPM, current-transformer, LLRF, energy, profile-size, and microwave-cabinet temperature diagnostics; all magnetic-current and klystron-HV write/readback pairs. Raw camera image arrays are intentionally excluded."
+    "scope": "All scalar BPM, current-transformer, LLRF, energy, profile-size, microwave-cabinet temperature, and accelerating-structure temperature diagnostics; all magnetic-current and klystron-HV write/readback pairs. Raw camera image arrays are intentionally excluded."
   },
   "defaults": {
     "acquisition": {
@@ -153,6 +153,13 @@
       "kind": "object",
       "color": "#f9844a",
       "order": 130
+    },
+    {
+      "id": "accelerating_structure_temperature",
+      "label": "Accelerating Structure Temperature",
+      "kind": "object",
+      "color": "#e76f51",
+      "order": 135
     }
   ],
   "knobs": [
@@ -21634,6 +21641,966 @@
         "t01"
       ],
       "note": "Microwave cabinet temperature probe."
+    },
+    {
+      "id": "l01a_t002_temperature",
+      "name": "L01A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L01A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l01",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l01b_t002_temperature",
+      "name": "L01B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L01B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l01",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l02a_t002_temperature",
+      "name": "L02A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L02A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l02",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l02b_t002_temperature",
+      "name": "L02B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L02B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l02",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l03a_t002_temperature",
+      "name": "L03A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L03A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l03",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l03b_t002_temperature",
+      "name": "L03B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L03B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l03",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l04a_t002_temperature",
+      "name": "L04A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L04A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l04",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l04b_t002_temperature",
+      "name": "L04B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L04B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l04",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l05a_t002_temperature",
+      "name": "L05A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L05A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l05",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l05b_t002_temperature",
+      "name": "L05B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L05B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l05",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l06a_t002_temperature",
+      "name": "L06A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L06A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l06",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l06b_t002_temperature",
+      "name": "L06B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L06B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l06",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l07a_t002_temperature",
+      "name": "L07A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L07A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l07",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l07b_t002_temperature",
+      "name": "L07B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L07B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l07",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l08a_t002_temperature",
+      "name": "L08A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L08A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l08",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l08b_t002_temperature",
+      "name": "L08B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L08B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l08",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l09a_t002_temperature",
+      "name": "L09A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L09A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l09",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l09b_t002_temperature",
+      "name": "L09B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L09B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l09",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l10a_t002_temperature",
+      "name": "L10A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L10A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l10",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l10b_t002_temperature",
+      "name": "L10B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L10B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l10",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l11a_t002_temperature",
+      "name": "L11A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L11A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l11",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l11b_t002_temperature",
+      "name": "L11B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L11B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l11",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l12a_t002_temperature",
+      "name": "L12A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L12A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l12",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l12b_t002_temperature",
+      "name": "L12B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L12B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l12",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l13a_t002_temperature",
+      "name": "L13A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L13A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l13",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l13b_t002_temperature",
+      "name": "L13B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L13B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l13",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l14a_t002_temperature",
+      "name": "L14A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L14A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l14",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l14b_t002_temperature",
+      "name": "L14B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L14B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l14",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l15a_t002_temperature",
+      "name": "L15A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L15A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l15",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l15b_t002_temperature",
+      "name": "L15B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L15B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l15",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l16a_t002_temperature",
+      "name": "L16A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L16A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l16",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l16b_t002_temperature",
+      "name": "L16B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L16B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l16",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l17a_t002_temperature",
+      "name": "L17A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L17A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l17",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l17b_t002_temperature",
+      "name": "L17B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L17B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l17",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l18a_t002_temperature",
+      "name": "L18A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L18A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l18",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l18b_t002_temperature",
+      "name": "L18B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L18B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l18",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l19a_t002_temperature",
+      "name": "L19A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L19A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l19",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l19b_t002_temperature",
+      "name": "L19B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L19B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l19",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l20a_t002_temperature",
+      "name": "L20A T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L20A_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l20",
+        "section_a",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
+    },
+    {
+      "id": "l20b_t002_temperature",
+      "name": "L20B T002 temperature",
+      "group": "accelerating_structure_temperature",
+      "read_pv": "PF:WC:L20B_T002:ai",
+      "unit": "degC",
+      "precision": 3,
+      "kind": "scalar",
+      "access": "ro",
+      "analysis": {
+        "jitter": true,
+        "correlation": true,
+        "spectrum": true
+      },
+      "tags": [
+        "temperature",
+        "accelerator",
+        "accelerating_structure",
+        "l20",
+        "section_b",
+        "t002"
+      ],
+      "note": "Accelerating structure temperature probe."
     }
   ],
   "presets": [
