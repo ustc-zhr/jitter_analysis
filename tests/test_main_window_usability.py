@@ -39,6 +39,21 @@ def test_setup_banner_offers_direct_action_when_config_is_missing(window):
     assert not window.mode_status_action_button.isHidden()
 
 
+def test_jitter_summary_table_and_plot_are_resizable(window):
+    splitter = window.jitter_summary_splitter
+    assert splitter.orientation() == main_window_module.QtCore.Qt.Vertical
+    assert splitter.widget(0) is window.jitter_table
+    assert splitter.widget(1) is window.jitter_plot
+    assert not splitter.childrenCollapsible()
+    assert not splitter.isCollapsible(0)
+    assert not splitter.isCollapsible(1)
+    assert splitter.handleWidth() == 7
+
+    header = window.jitter_table.horizontalHeader()
+    assert header.sectionResizeMode(0) == main_window_module.QtWidgets.QHeaderView.Interactive
+    assert header.sectionSize(0) == 420
+
+
 def test_loaded_config_keeps_setup_in_manual_control(window):
     config_path = Path(__file__).resolve().parents[1] / "configs" / "irfel_pvlist.json"
     assert window._load_config_path(config_path)

@@ -887,25 +887,39 @@ class MainWindow(_MainWindowBase):
         layout.setSpacing(8)
         self.jitter_table = QtWidgets.QTableWidget(0, 9)
         self.jitter_table.setHorizontalHeaderLabels(
-            ["PV", "Count", "Mean", "Std", "Jitter RMS", "P2P", "Min", "Max", "Unit"]
+            ["PV", "Count", "Mean", "Std", "Jitter (%)", "P2P", "Min", "Max", "Unit"]
         )
         self.jitter_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.jitter_table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         self.jitter_table.setAlternatingRowColors(True)
         self.jitter_table.verticalHeader().setVisible(False)
         self._apply_jitter_table_column_layout()
-        layout.addWidget(self.jitter_table)
         self.jitter_plot = JitterPlot()
         self.analysis_outlier_filter_panel = self._build_analysis_outlier_filter_panel()
         self.jitter_plot.add_trailing_control_widget(self.analysis_outlier_filter_panel)
-        layout.addWidget(self.jitter_plot, 1)
+
+        self.jitter_summary_splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+        self.jitter_summary_splitter.setObjectName("jitterSummarySplitter")
+        self.jitter_summary_splitter.setChildrenCollapsible(False)
+        self.jitter_summary_splitter.setHandleWidth(7)
+        self.jitter_summary_splitter.addWidget(self.jitter_table)
+        self.jitter_summary_splitter.addWidget(self.jitter_plot)
+        self.jitter_summary_splitter.setCollapsible(0, False)
+        self.jitter_summary_splitter.setCollapsible(1, False)
+        self.jitter_summary_splitter.setStretchFactor(0, 0)
+        self.jitter_summary_splitter.setStretchFactor(1, 1)
+        self.jitter_summary_splitter.setSizes([180, 640])
+        layout.addWidget(self.jitter_summary_splitter, 1)
         return widget
 
     def _apply_jitter_table_column_layout(self) -> None:
         header = self.jitter_table.horizontalHeader()
         header.setStretchLastSection(False)
         header.setMinimumSectionSize(54)
-        header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.Interactive)
+        if not getattr(self, "_jitter_column_layout_initialized", False):
+            self.jitter_table.setColumnWidth(0, 420)
+            self._jitter_column_layout_initialized = True
         fixed_widths = {
             1: 70,
             2: 92,
@@ -4128,7 +4142,7 @@ class MainWindow(_MainWindowBase):
                     "values": filtered_values,
                     "mean": stats.mean,
                     "std": stats.std,
-                    "rms": stats.rms,
+                    "relative_jitter_percent": stats.relative_jitter_percent,
                     "p2p": stats.peak_to_peak,
                     "raw_count": raw_count,
                     "removed_count": removed_count,
@@ -4138,12 +4152,17 @@ class MainWindow(_MainWindowBase):
 
         self.jitter_table.setRowCount(len(rows))
         for row_index, (pv_id, name, stats, unit, raw_count, removed_count) in enumerate(rows):
+            relative_jitter_text = (
+                f"{stats.relative_jitter_percent:.6g}"
+                if math.isfinite(stats.relative_jitter_percent)
+                else "N/A"
+            )
             values = [
                 name,
                 str(stats.count),
                 f"{stats.mean:.6g}",
                 f"{stats.std:.6g}",
-                f"{stats.rms:.6g}",
+                relative_jitter_text,
                 f"{stats.peak_to_peak:.6g}",
                 f"{stats.minimum:.6g}",
                 f"{stats.maximum:.6g}",
@@ -4158,7 +4177,12 @@ class MainWindow(_MainWindowBase):
                 item = QtWidgets.QTableWidgetItem(value)
                 if col_index == 0:
                     item.setData(QtCore.Qt.UserRole, pv_id)
-                item.setToolTip(tooltip)
+                if col_index == 4:
+                    item.setToolTip(
+                        tooltip + "\nRelative jitter = Std / |Mean| × 100%; N/A when Mean is zero."
+                    )
+                else:
+                    item.setToolTip(tooltip)
                 self.jitter_table.setItem(row_index, col_index, item)
         self._apply_jitter_table_column_layout()
         self._update_jitter_filter_status(total_removed=total_removed, affected_variables=affected_variables)

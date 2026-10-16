@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
+import math
 
 from ...analysis.jitter import transform_jitter_values
 from .visibility import downsample_series_min_max, padded_finite_range, resolve_initial_visibility
@@ -399,10 +400,16 @@ if QtWidgets is not None:
                 downsample_note = f" Min/max downsampling enabled: limit={downsample_limit} rendered points."
             else:
                 downsample_note = " Downsampling disabled."
+            relative_jitter_percent = float(focused_row.get("relative_jitter_percent", math.nan))
+            relative_jitter_phrase = (
+                f"{relative_jitter_percent:.6g}%"
+                if math.isfinite(relative_jitter_percent)
+                else "N/A"
+            )
             self.info_label.setText(
                 f"Showing {len(visible_rows)}/{len(self._series_rows)} variables. "
                 f"Focus: {focused_label}, {count_phrase}{filter_note}, mean={float(focused_row['mean']):.6g}, "
-                f"std={float(focused_row['std']):.6g}, jitter rms={float(focused_row['rms']):.6g}, "
+                f"std={float(focused_row['std']):.6g}, jitter={relative_jitter_phrase}, "
                 f"p2p={float(focused_row['p2p']):.6g}, plot={value_phrase}.{fallback_note}"
                 f"{downsample_note}{symbol_note}"
             )
